@@ -42,6 +42,16 @@ bool camera_pitch(float* out);
 // through the camera's view matrix. GX 3x4, by rows. False when there is no camera.
 bool kart_in_view(float out[3][4]);
 
+// The first player's kart: the body their camera follows. `m` is its world matrix
+// (KartBody+0x110, a GX 3x4 by rows; its columns are the kart's left, up and forward, the
+// fourth its position, in game units -- 100 to the metre). `speed` is KartBody::mSpeed, in
+// units a frame, which the game turns into km/h by times 2.16 (KartCtrl::GetCarSpeed).
+struct KartPose {
+    float m[3][4];
+    float speed;
+};
+bool kart_pose(KartPose* out);
+
 // A race the player drives on one screen, from the grid to the finish, and not paused.
 inline bool race_live(const Race& r) {
     return r.exists && !r.demo && r.players >= 1 && r.screens == 1 && r.mode >= kTimeAttack &&

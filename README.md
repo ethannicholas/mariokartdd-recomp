@@ -143,6 +143,47 @@ Settings are read from a `vr.txt` in the directory you run the game from; see
 [Tuning the VR view](#tuning-the-vr-view). To use a runtime other than the active one, point
 `XR_RUNTIME_JSON` at its manifest.
 
+## Motion platforms
+
+Early: sends the right data, but not yet tried on a rig.
+
+`--telemetry` sends your kart's motion to a motion simulator, in the format of
+[SimRacingStudio](https://www.simracingstudio.com/)'s custom game API: UDP packets to
+`127.0.0.1:33001`, where SimRacingStudio listens by default. `--telemetry=host:port` sends
+them elsewhere. SimRacingStudio shows the game as *Mario Kart: Double Dash!!*. It works with
+or without `--vr`:
+
+```powershell
+.\build\mkdd.exe --vr --telemetry
+```
+
+The platform moves only during your own race, from the grid to the finish: it eases to rest
+in the menus, while paused, in split screen and at the end of a race, and eases back in when
+one starts or you resume. Pitch and roll are your kart's against the horizontal; surge, sway
+and heave are its accelerations. Karts corner at several g at the game's own scale, so those
+are scaled down before they are sent. Every channel can be scaled, inverted or limited with
+a `telemetry.txt` in the directory you run the game from (all optional):
+
+```
+accel_scale 0.3     # what the kart's accelerations are multiplied by before anything else
+pitch_gain 1        # multiply each channel; a negative value inverts it
+roll_gain 1
+yaw_gain 1
+surge_gain 1        # forward acceleration
+sway_gain 1         # sideways acceleration
+heave_gain 1        # acceleration along the kart's up
+fade_s 1            # seconds to ease in and out of rest
+max_angle 25        # the most pitch, roll or yaw sent, in degrees
+angle_rate 120      #   and how fast pitch and roll may change, in degrees a second
+yaw_rate 60         #   and yaw
+max_accel 15        # the most acceleration sent, in m/s^2 (about 1.5 g)
+accel_rate 300      #   and how fast it may change, in m/s^2 a second
+yaw_washout_s 1.5   # yaw is sent as the turn in progress, returning to centre over this
+accel_s 0.15        # seconds over which accelerations are smoothed; higher is gentler
+velocity_s 0.05     # the same for the velocity they are taken from
+log 0               # 1 prints what is sent, twice a second
+```
+
 ## Running on a Quest 3
 
 Early: the app builds from the same scripts as the other gcn-recomp games, but has not yet
@@ -243,8 +284,8 @@ Escape quits.
   submodule. Nothing in it is specific to this game.
 - `analysis/`: function and data layout of `main.dol`, in decomp-toolkit's format.
 - `recomp/`: the tables that steer the recompiler for this game.
-- `src/`: the game's half of the headset: when to be in stereo, the world's scale, and
-  what the eyes leave out.
+- `src/`: the game's half of the headset and the motion rig: when to be in stereo, the
+  world's scale, what the eyes leave out, and the kart's motion.
 - `tools/`: `analyze.sh`, which regenerates `analysis/`; `name_from_map.py`, which names
   its functions from the linker map on your disc; `dis` and `disraw`, which print
   disassembly from it and from your extracted executable.

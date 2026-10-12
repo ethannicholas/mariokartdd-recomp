@@ -20,6 +20,7 @@ constexpr uint32_t kTargetBody = 0x00;         // the KartBody it follows
 constexpr uint32_t kViewMatrix = 0x80;         // its view matrix, a GX 3x4 by rows
 // KartBody
 constexpr uint32_t kBodyMatrix = 0x110;        // its world matrix, a GX 3x4 by rows
+constexpr uint32_t kBodySpeed = 0x444;         // mSpeed: units a frame
 
 // RaceMgr
 constexpr uint32_t kDirector = 0x18;
@@ -84,6 +85,20 @@ bool kart_in_view(float out[3][4]) {
         for (int j = 0; j < 4; j++)
             out[i][j] = v[i][0] * k[0][j] + v[i][1] * k[1][j] + v[i][2] * k[2][j] + (j == 3 ? v[i][3] : 0.0f);
     return true;
+}
+
+bool kart_pose(KartPose* out) {
+    const uint32_t cam = player_camera();
+    if (!cam) return false;
+    const uint32_t body = mem_r32(cam + kTargetBody);
+    if (!in_ram(body, kBodySpeed + 4)) return false;
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 4; j++) {
+            out->m[i][j] = rd_f(body + kBodyMatrix + (i * 4 + j) * 4);
+            if (!std::isfinite(out->m[i][j])) return false;
+        }
+    out->speed = rd_f(body + kBodySpeed);
+    return std::isfinite(out->speed);
 }
 
 bool camera_pitch(float* out) {

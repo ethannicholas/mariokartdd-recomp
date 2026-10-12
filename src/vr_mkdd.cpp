@@ -17,6 +17,7 @@
 
 #include "gx/render.h"
 #include "gx/render_gl.h"
+#include "motion.h"
 #include "race.h"
 #include "vr_game.h"
 
@@ -71,6 +72,7 @@ void guest_frame(uint32_t frame) {
                 live ? "stereo" : "theater", race.phase, race.run_state, race.mode, race.players, race.screens, race.demo,
                 race.paused);
     g_stereo.store(live, std::memory_order_relaxed);
+    mkdd::motion_frame(live);
     float pitch;
     if (live && mkdd::camera_pitch(&pitch)) {
         g_camera_pitch.store(pitch, std::memory_order_relaxed);

@@ -1,11 +1,13 @@
-# VR
+# VR and motion telemetry
 
-The headset frontends (PC VR with `--vr` on Windows, the Quest app) are gcn-recomp's
-(`openxr/`, `android/`). What is this game's is in `src/`:
+The headset frontends (PC VR with `--vr` on Windows, the Quest app) and the motion telemetry
+are gcn-recomp's (`openxr/`, `android/`, `runtime/telemetry.*`). What is this game's is in
+`src/`:
 
 - `race.cpp` reads the race out of the game's memory;
 - `vr_mkdd.cpp` answers the frontend's hooks (`vr::GameHooks`) and decides, once a frame
-  on the guest thread (`gx::set_guest_frame_hook`), whether to be in stereo.
+  on the guest thread (`gx::set_guest_frame_hook`), whether to be in stereo;
+- `motion.cpp` turns the player's kart into telemetry.
 
 Not yet worn: everything below was checked with the desktop eye preview (`--eye`, which
 renders through the stereo path with the game's own VR settings and eye filter) and the
@@ -61,6 +63,7 @@ the pause (7202), stereo again at 7508.
 | KartCam+0x00 | the `KartBody` it follows |
 | KartCam+0x80 | its view matrix, GX 3x4 by rows (+0x148 field of view, 80; +0x150 near 10; +0x154 far 200000; +0x1E8 position; +0x1F4 look-at) |
 | KartBody+0x110 | its world matrix: columns the kart's left, up and forward (the direction of travel), then its position (also at +0x23C; the last frame's at +0x248) |
+| KartBody+0x444 | `mSpeed`, units a frame; `KartCtrl::GetCarSpeed` is it times 2.16, km/h at 100 units a metre |
 
 ## First person
 
@@ -87,6 +90,28 @@ made every frame). An eye hangs orthographic draws on the HUD frame, where these
 a translucent rectangle of smeared scenery. `eye_filter` hides every orthographic draw that
 samples a copy. The HUD itself samples ordinary textures.
 
+## Telemetry
+
+See the comment at the top of `motion.cpp`. In short: the body the first player's camera
+follows; velocity and acceleration differenced from its position (1/60 s a frame, 100 units
+a metre) and eased, put in the kart's frame (surge along the nose, sway to the right, heave
+along its up); pitch and roll against the horizontal, since gravity is the world's -y here;
+the accelerations scaled by `accel_scale` (0.3); inactive whenever the eyes are not in
+stereo (`race_live` and the wait after a pause), and a jump of over 300 units in a frame
+(Lakitu putting the kart back) sent as a discontinuity.
+
+The scale is the game's own: `mSpeed` (KartBody+0x444, from the decompilation's
+`KartBody` layout, which agrees with the retail offsets of the matrix and the position) times
+2.16 is `GetCarSpeed`'s km/h, which is 3.6 * 60 / 100, and the speed differenced from the
+position matched it to within a km/h from 0 to 95 km/h on Luigi Circuit. Steering right
+with the scripted route (`SR` from frame 7000) raised the heading, gave a positive sway (into
+the turn) and a negative slide (the kart sliding outward), as `telemetry.h` defines them.
+The accelerations at that scale are a kart's: about 4 m/s^2 accelerating at 80 km/h, 20-50
+m/s^2 sideways through the first turn at 95 km/h, and 50-90 bouncing over the grass into the
+wall. Unscaled, every channel sat at the shared 15 m/s^2 limit through the turn, hence 0.3.
+`MKDD_MOTIONLOG=1` prints what goes into the telemetry module, `GCN_TELEMETRY_LOG=1` what
+comes out; `--telemetry=127.0.0.1:<another port>` keeps it from a running SimRacingStudio.
+
 ## Still to look at
 
 - Wearing it: scale, the HUD's distance and size, the pitch, comfort at speed.
@@ -95,3 +120,5 @@ samples a copy. The HUD itself samples ordinary textures.
 - Lens flare: the game tests the sun's visibility by copying 2x2 pixels of the EFB and
   reading them back; what an eye does to that is unexamined.
 - The theater screen as a stereo pair for the 3D menus (`theater_stereo`).
+- Telemetry on a rig: `accel_scale`, whether the grass and the walls are too rough, whether
+  a mini-turbo or a drift reads, and what Lakitu's rescue does.
