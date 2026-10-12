@@ -42,5 +42,7 @@ flow and into a race:
 
 - A route that steers round a whole race, then the rest of the cup; the other modes.
 - Audio: a listening pass; the movie audio's peak sits at a constant 15732, worth a look.
-- VR (`vr.md`).
-- Windows: `build.ps1` from prime-recomp has not been brought over.
+- VR: wear it (`vr.md`): stereo switching, scale, pitch and the eye filter are in and were
+  checked in the desktop eye preview; the Quest targets cross-compile; PC VR is built on
+  Windows only.
+- Windows: `build.ps1` is in but has not been run here.

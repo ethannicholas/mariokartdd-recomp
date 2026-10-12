@@ -26,12 +26,16 @@ anything non-obvious you learn in `docs/dev/`:
 - `docs/dev/status.md` -- how far the game gets, what is broken, the next milestones.
 - `docs/dev/audio.md` -- the JAudio DSP ucode and how the game drives it.
 - `docs/dev/routes.md` -- scripted input routes through the game.
+- `docs/dev/vr.md` -- the headset hooks and the game state they read.
+- `docs/dev/symbols.md` -- where `analysis/symbols.txt`'s names come from.
 
 When a belief is overturned, say what the belief was and what disproved it.
 
 All of the game's code is in `main.dol` (no relocatable modules). `analysis/symbols.txt` is
-dtk's own analysis of the retail DOL: SDK functions it recognises are named, the rest are
-`fn_<address>`. `tools/dis fn_800A1C00` (or `tools/dis 800A1C00`) disassembles a function;
-name functions by hand in `recomp/names.txt`.
+dtk's analysis of the retail DOL, with about 7,800 functions named from the disc's linker
+map (`docs/dev/symbols.md`); the rest are `fn_<address>`. `tools/dis
+calc__12RaceDirectorFv` (or `tools/dis 8019F74C`) disassembles a function; name functions
+by hand in `recomp/names.txt`. The MKDD decompilation (doldecomp/mkdd, CC0) has the
+classes' layouts; its addresses are another build's.
 
 Commit on `main` and push as work lands; no feature branches or PRs.
