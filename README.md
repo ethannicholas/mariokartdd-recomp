@@ -47,9 +47,9 @@ The build verifies this hash and stops with an error for any other version.
 
 ## Status
 
-Early. The game boots through the Nintendo logo and the opening movie to the title screen,
-and its attract mode cycles through demo races, which do not render yet. There is no audio
-yet. See `docs/dev/status.md`.
+Early. The game runs from a blank memory card through the opening movie, the title screen
+and the menus into a Grand Prix race. There is no audio yet. See `docs/dev/status.md` for
+how far it gets and what is known not to work.
 
 ## Building
 

@@ -1,13 +1,20 @@
 # Status
 
-## 2026-10-12: title screen and attract mode
+## 2026-10-12: a Grand Prix race
 
-- Nintendo logo (fades in and out); the opening movie (`Movie/play1.thp`, THP, 608x448
-  interlaced, with audio); the title screen with PRESS START.
-- Left alone, attract mode loads demo races one after another (Daisy Cruiser, Yoshi
-  Circuit, ...) and runs them, but they draw almost nothing: a dark screen with the logo in
-  the corner. Not looked at yet.
+From a blank memory card, scripted input (`routes.md`) goes through the whole first-run
+flow and into a race:
+
+- Nintendo logo; the opening movie (`Movie/play1.thp`, THP, 608x448 interlaced); the
+  title screen; the memory card prompt, and the save is written.
+- Start Game, number of players, Grand Prix / 50cc, character select, Mushroom Cup.
+- Luigi Circuit: the course flyover, the countdown, the race with seven CPU racers, the
+  HUD, the minimap and the speedometer.
+- Left alone at the title, attract mode plays demo races (Daisy Cruiser, Yoshi Circuit,
+  ...).
 - No audio: the DSP ucode's protocol is emulated but it renders silence (`audio.md`).
+- Speed: `mkdd_bench` runs the attract-mode races at about 150-160 fps, 330 fps over the
+  whole two minutes.
 
 ## Fixed on the way (all in gcn-recomp)
 
@@ -24,10 +31,14 @@
     the beam position. The runtime's VI counted lines 1..263 in every field with the
     horizontal count fixed at 1, so every field looked like the first. The beam now counts
     through both fields of a frame and has a horizontal position.
+- Every race drew nothing but the HUD. The frame starts with JSystem's EFB clear: a
+  black quad at the near plane with a Z texture (`GXSetZTexture`, replace) whose texels hold
+  the far depth. The renderer had no Z textures, so the quad wrote the nearest depth over
+  the frame and every later draw failed the depth test. Found by skipping draws
+  (`GCN_DRAW_SKIP=0-0` brought the whole race back).
 
 ## Next
 
-- The demo races: why they draw nothing.
-- A route from the title screen into a race (`routes.md`).
+- A route that steers round a whole race, then the rest of the cup; the other modes.
 - Audio: synthesis for the JAudio ucode.
 - Windows: `build.ps1` from prime-recomp has not been brought over.
