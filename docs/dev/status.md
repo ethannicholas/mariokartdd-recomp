@@ -12,7 +12,8 @@ flow and into a race:
   HUD, the minimap and the speedometer.
 - Left alone at the title, attract mode plays demo races (Daisy Cruiser, Yoshi Circuit,
   ...).
-- No audio: the DSP ucode's protocol is emulated but it renders silence (`audio.md`).
+- Audio: the JAudio ucode is synthesised (`audio.md`): sound effects, voices, sequenced
+  and streamed music, the echo lines. Not yet checked by ear against the console.
 - Speed: `mkdd_bench` runs the attract-mode races at about 150-160 fps, 330 fps over the
   whole two minutes.
 
@@ -40,5 +41,6 @@ flow and into a race:
 ## Next
 
 - A route that steers round a whole race, then the rest of the cup; the other modes.
-- Audio: synthesis for the JAudio ucode.
+- Audio: a listening pass; the movie audio's peak sits at a constant 15732, worth a look.
+- VR (`vr.md`).
 - Windows: `build.ps1` from prime-recomp has not been brought over.

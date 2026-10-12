@@ -26,8 +26,30 @@ page is how this game uses it.
   and, at zero, starts the next render (`fn_80092374`); otherwise it sends the next frame's
   syncs (`fn_80091F48`).
 
+## The synthesizer
+
+gcn-recomp's `jaudio.cpp` renders the voices. What the game's side looks like, from the
+MKDD decompilation's `JASDSPInterface.cpp` (a voice block is its `JASDsp::TChannel`):
+
+- 64 voices, PCM8, 4-bit ADPCM (the `.aw` banks) and PCM16 (the `.ast` streams, which
+  `JASAramStream` feeds through a ring in ARAM, reading back the ucode's address and
+  samples-left fields at 0x70 and 0x74 and moving the loop fields to wrap the ring).
+  No oscillators and no per-voice filters seen.
+- The race's voices (its music stream among them) use the **auto mixer**: their channels
+  are in JAudio's surround ("Dolby") mode, so the channel code calls `updateAutoMixer`
+  (volume at 0x56, pan and depth at 0x50, effect send at 0x52) and never fills in the
+  mixer slots, which keep stack garbage (pointers such as `800A3F80`). Mixing the slots as
+  volumes clipped the race music by about 3x; the first sign was that every voice had the
+  same "volumes" and none of them sent to the left bus. The title and menu music use the
+  mixer slots; their levels did not change when the auto mixer went in.
+- The output volume is `0x5999` (DSP level 1.4, x4 in 4.12). Voice volumes are around
+  `0x0600`-`0x1900`.
+- The four effect lines are a stereo echo: 64- and 32-frame delays, one tap at 0.5, lines
+  0 and 2 returning to the left bus, 1 and 3 to the right. Voices send to `0x0DC0` and
+  `0x0E20`.
+
 ## Status
 
-The protocol runs: the game boots, the audio thread cycles, and the output buffers are
-filled with silence. Nothing is synthesised yet -- the voice parameter blocks, the ARAM
-sample formats, resampling and the reverb buffers are next.
+Synthesised, not yet listened to on this machine: levels were checked from
+`GCN_JAUDIO_WAV` dumps (race RMS about 7000-9000 with brief peaks; the menus about 6000).
+The rear quadrants are folded into the front pair rather than matrix-encoded.
