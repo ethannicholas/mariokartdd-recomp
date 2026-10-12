@@ -1,0 +1,17 @@
+#!/bin/sh
+# usage: disraw <start hex> <end hex>  -- raw disassembly of build/main.dol between two addresses
+cd "$(dirname "$0")/.."
+python3 - "$1" "$2" <<'PY'
+import struct, sys, subprocess
+d = open('build/main.dol', 'rb').read()
+offs = struct.unpack('>18I', d[0:0x48]); addrs = struct.unpack('>18I', d[0x48:0x90]); sizes = struct.unpack('>18I', d[0x90:0xd8])
+a, b = int(sys.argv[1], 16), int(sys.argv[2], 16)
+for o, s, z in zip(offs, addrs, sizes):
+    if s <= a < s + z:
+        for p in range(a, b, 4):
+            w = d[o + p - s:o + p - s + 4]
+            r = subprocess.run(['/opt/homebrew/opt/llvm/bin/llvm-mc', '--disassemble', '-triple=powerpc-unknown-eabi', '-mcpu=750'],
+                               input=' '.join('0x%02x' % x for x in w), capture_output=True, text=True)
+            ins = [l.strip() for l in r.stdout.splitlines() if l.strip() and not l.strip().startswith('.')]
+            print('%08X %s  %s' % (p, w.hex(), ins[0] if ins else '?'))
+PY

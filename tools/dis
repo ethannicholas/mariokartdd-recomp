@@ -1,0 +1,5 @@
+#!/bin/sh
+# usage: dis <fn name or address>   -- print disassembly of a function from dtk asm
+cd "$(dirname "$0")/../analysis"
+n="$1"; case "$n" in 8*) n="fn_$n";; esac
+awk -v n="$n" '$0 ~ "^\\.fn "n"," {p=1} p { if ($0 ~ /^\/\*/) { split($0, a, "\t"); printf "%s %s\n", substr($0,4,8), a[2] } else if ($0 ~ /^\.L/) print $0; } $0 ~ "^\\.endfn "n"$" {p=0}' all.s
