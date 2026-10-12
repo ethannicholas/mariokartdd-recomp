@@ -27,6 +27,8 @@ constexpr uint32_t kGroundMaterial = 0x54;
 constexpr uint32_t kBodyRpm = 0x44C;           // mCarRPM
 constexpr uint32_t kBodyStatus = 0x574;        // mCarStatus, a u64 at 0x570: its low word
 constexpr uint32_t kBodyTouch = 0x5A4;         // mTouchNum
+constexpr uint32_t kBodySus = 0x04;            // mKartSus[4]: FR, FL, RR, RL
+constexpr uint32_t kSusTravel = 0xB8;
 
 // RaceMgr
 constexpr uint32_t kDirector = 0x18;
@@ -107,6 +109,10 @@ bool kart_pose(KartPose* out) {
     out->rpm = rd_f(body + kBodyRpm);
     out->status = mem_r32(body + kBodyStatus);
     out->wheels_down = (int32_t)mem_r32(body + kBodyTouch);
+    for (int w = 0; w < 4; w++) {
+        const uint32_t sus = mem_r32(body + kBodySus + w * 4);
+        out->sus[w] = in_ram(sus, 0x2CC) ? rd_f(sus + kSusTravel) : NAN;
+    }
     out->ground = mem_r32(body + kBodyGround + kGroundAttr);
     out->material = mem_r32(body + kBodyGround + kGroundMaterial);
     return std::isfinite(out->speed) && std::isfinite(out->rpm);

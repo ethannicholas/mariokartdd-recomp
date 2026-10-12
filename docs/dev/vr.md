@@ -123,6 +123,8 @@ running SimRacingStudio. A recorded session (`saves/inputs/`) replayed with `--h
 | KartBody+0x44C | `mCarRPM`: the wheels' spin summed, times 40, plus 300, at most 16300 |
 | KartBody+0x570 | `mCarStatus`, a u64; its low word at +0x574 holds every bit used here |
 | KartBody+0x5A4 | `mTouchNum`, wheels on the ground |
+| KartBody+0x04 | `mKartSus[4]`: front right, front left, rear right, rear left |
+| KartSus+0xB8 | the wheel's extension along its arm, in units: 40 in the air, about 36 at rest, near 0 on a hard landing (`DoSusAction` is undecompiled; `KartDisp` offsets the wheel by it) |
 
 From the decompilation, and seen in a replayed session: `mCarStatus` & 3 is a power slide
 (`KartCtrl::GetDriftCnt`), 0x40 airborne, 0x100000 any crash, with 0x80000 a spin
@@ -149,8 +151,13 @@ shaker had no engine to play. So now (the top of `motion.cpp`):
   raised to 360 degrees a second for this game.
 - Pitch doubled. Roll not: Luigi Circuit's banked turn is 30-38 degrees for five seconds,
   which already holds roll at its limit. Both fade out in a crash.
-- A road texture from the shared module, as rough as the ground: 0.4 on the road, 0.9 off
-  it, the rumbling materials at least 0.5-1, nothing in the air.
+- A road texture. First made up in the shared module from the ground's type, as filtered
+  noise: on the rig it felt like white noise, all one note. Now it is the kart's suspension
+  (KartSus+0xB8, the wheel's extension along its arm: 40 in the air, about 36 at rest, near 0
+  on a hard landing), its movement about a running mean on heave, pitch and roll. On the
+  replayed ride, as sent: heave 0.5-0.8 m/s^2 RMS on the road, 1.8 on the grass; roll 1.8
+  degrees RMS on the rumbling material; landings 10-15 m/s^2. A bump comes through on the
+  front pair, then the rear.
 - The engine from the speed (900-8000 rpm to 130 km/h), with the game's revs only near a
   standstill: `mCarRPM` sits at its ceiling at any speed and jumps by thousands between frames
   as wheels leave the ground.

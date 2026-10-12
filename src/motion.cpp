@@ -35,10 +35,13 @@
 // The sideways velocity (Motion::sway_velocity) is sent only then too, for a profile that
 // takes traction loss from it.
 //
-// The ground under the kart (its CrsGround's attribute and material) sets how rough the
-// telemetry module's road texture is: `road_texture` on the road, `offroad_texture` on the
-// attributes the game slows the kart on, the materials the game rumbles the controller on
-// at least as much, none in the air.
+// The road texture is the kart's own suspension (Motion::suspension): each wheel's extension
+// along its arm (KartSus+0xB8) is 40 units in the air, about 36 at rest and near 0 on a hard
+// landing, so its compression is 40 less that, in centimetres. Its movement is what the road
+// does to the kart: a bump hits the front pair and then the rear a few frames later, and on a
+// replayed ride it moved 1.5-2.2 cm (RMS about its running mean) on the road, 5 on the
+// rumbling material and on the grass, with landings bottoming out. A first texture made up
+// from the ground's type as filtered noise felt like noise, all one note.
 //
 // The engine is sent as an engine a shaker can play: `idle_rpm` (900) to `max_rpm` (8000) as
 // the speed goes to `top_kmh` (130). The game's own mCarRPM sums the wheels' spin, sits at its
@@ -97,21 +100,6 @@ int log_every() {
     return n;
 }
 
-// How rough the ground is, 0 to 1 (Motion::roughness).
-float roughness(const KartPose& p) {
-    if ((p.status & kStatusAirborne) || p.wheels_down <= 0) return 0.0f;
-    static const float road = telemetry::get("road_texture", 0.4f);
-    static const float offroad = telemetry::get("offroad_texture", 0.9f);
-    float r = road;
-    // The attributes KartCtrl::GetMaxSpeed slows the kart on.
-    if (p.ground == 0x00 || p.ground == 0x03 || p.ground == 0x0C || p.ground == 0x13) r = offroad;
-    // The materials KartHandle rumbles the controller on, at its strengths 30, 2 and 1.
-    if (p.material == 6) r = fmaxf(r, 1.0f);
-    else if (p.material == 7) r = fmaxf(r, 0.7f);
-    else if (p.material == 3 || p.material == 4 || p.material == 5 || p.material == 0xE) r = fmaxf(r, 0.5f);
-    return r;
-}
-
 }  // namespace
 
 void motion_frame(bool live) {
@@ -119,6 +107,9 @@ void motion_frame(bool live) {
     static const bool defaults = [] {
         telemetry::set_default("pitch_gain", 2.0f);
         telemetry::set_default("yaw_rate", 360.0f);
+        // A kart's wheels are about 100 units apart front to back and 150 side to side.
+        telemetry::set_default("wheelbase_m", 1.0f);
+        telemetry::set_default("track_m", 1.5f);
         return true;
     }();
     (void)defaults;
@@ -215,14 +206,22 @@ void motion_frame(bool live) {
     m.sway_velocity = v_right * fmaxf(y.drift_w, y.spin_w);
     m.rpm = idle_rpm + (max_rpm - idle_rpm) * g_rev;
     m.max_rpm = max_rpm;
-    m.roughness = roughness(p);
+    // The suspension, front left, front right, rear left, rear right; the kart's is FR, FL,
+    // RR, RL.
+    static const int kWheel[4] = {1, 0, 3, 2};
+    m.has_suspension = true;
+    for (int w = 0; w < 4; w++) {
+        const float ext = p.sus[kWheel[w]];
+        if (!std::isfinite(ext)) m.has_suspension = false;
+        m.suspension[w] = std::isfinite(ext) ? fmaxf(0.0f, 40.0f - ext) / kUnitsPerMetre : 0.0f;
+    }
     if (log_every()) {
         static int n;
         if (n++ % log_every() == 0)
             fprintf(stderr, "[motion] %5.1f km/h pitch %+5.1f roll %+5.1f yaw %+6.1f | surge %+6.2f sway %+6.2f heave %+6.2f m/s2 slide %+5.2f m/s | "
-                            "slip %+6.1f drift %.2f spin %.2f spun %+5.0f | status %08X ground %02X/%02X rough %.2f wheels %d revs %5.0f rpm %5.0f\n",
+                            "slip %+6.1f drift %.2f spin %.2f spun %+5.0f | status %08X ground %02X/%02X wheels %d revs %5.0f rpm %5.0f | sus %+7.3f %+7.3f %+7.3f %+7.3f\n",
                     m.speed_kmh, m.pitch, m.roll, m.yaw, m.surge, m.sway, m.heave, v_right, slip, y.drift_w, y.spin_w, y.spun,
-                    p.status, p.ground, p.material, m.roughness, p.wheels_down, p.rpm, m.rpm);
+                    p.status, p.ground, p.material, p.wheels_down, p.rpm, m.rpm, p.sus[0], p.sus[1], p.sus[2], p.sus[3]);
     }
     telemetry::publish(m);
 }

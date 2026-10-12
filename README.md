@@ -164,9 +164,9 @@ and heave are its accelerations. Karts corner at several g at the game's own sca
 are scaled down before they are sent.
 
 The platform does not yaw with every turn. It yaws into a power slide, by the angle of the
-slide, and thrashes from side to side when you spin out or are hit. The road has a texture,
-rougher on the grass and the dirt than on the road, and none in the air; the engine is sent
-for a shaker's engine effect, rising with your speed.
+slide, and thrashes from side to side when you spin out or are hit. The road's texture is the
+kart's own suspension riding over it, so the grass, the rumble strips and the landings feel
+like what they are; the engine is sent for a shaker's engine effect, rising with your speed.
 
 Every channel can be scaled, inverted or limited with a `telemetry.txt` in the directory you
 run the game from (all optional):
@@ -180,14 +180,11 @@ drift_yaw_gain 0.25 # yaw in a slide, times the slide's angle
 drift_yaw_max 15    #   and at most this, in degrees
 drift_fade_s 0.25   #   eased in and out over this
 spin_yaw 12         # how far a spin-out swings the platform each way, in degrees
-road_texture 0.4    # how rough the road is, 0 to 1
-offroad_texture 0.9 #   and the grass and the dirt
-texture_gain 1      # all of the road texture
-texture_heave 1.5   #   its size at roughness 1 and full speed: m/s^2,
-texture_pitch 0.3   #   degrees
-texture_roll 0.5    #   and degrees
-texture_hz 8        #   and how fast it is
-texture_speed_kmh 60 #  the speed from which it is at full size
+texture_gain 1      # the road texture, from the kart's suspension
+suspension_heave 40 #   heave, m/s^2 for each metre the springs move
+suspension_pitch 0.6 #  pitch, times the angle front against rear
+suspension_roll 0.6 #   roll, times the angle left against right
+suspension_hp_s 0.25 #  how long the springs take to count as at rest again
 idle_rpm 900        # the engine at a standstill
 max_rpm 8000        #   and flat out
 top_kmh 130         #   at this speed

@@ -52,6 +52,9 @@ struct KartPose {
     uint32_t status;     // mCarStatus's low word: see the kStatus bits
     float rpm;           // mCarRPM: 300 at rest to 16300; the game reads 5000 as flat out
     int wheels_down;     // mTouchNum: wheels on the ground
+    // Each wheel's suspension (KartSus+0xB8, the wheel's offset along its arm in the display
+    // code), front right, front left, rear right, rear left; NaN for a wheel not found.
+    float sus[4];
     uint32_t ground;     // the course attribute under the body (CrsGround), 0xFF for none
     uint32_t material;   //   and its material
 };
