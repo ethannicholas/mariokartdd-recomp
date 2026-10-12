@@ -134,7 +134,9 @@ OpenGL.
 Connect the headset and start its PC software first. Menus, the course flyovers, the
 results and split-screen races are on a flat screen in front of you; your own race is all
 around you, in stereo 3D, from the moment the camera drops onto the grid to the finish, and
-goes back to the flat screen while paused. The window on the desktop mirrors the headset. A
+goes back to the flat screen while paused. Clicking the right thumbstick in a race puts you
+in the driver's seat, and clicking it again goes back to the game's chase camera. The window
+on the desktop mirrors the headset. A
 gamepad and the keyboard work alongside the headset's controllers.
 
 Settings are read from a `vr.txt` in the directory you run the game from; see
@@ -191,6 +193,7 @@ The app appears under **Library → Unknown Sources → Double Dash Recomp**, an
 | L / R | Left / right trigger |
 | Start | Menu (left) |
 | D-pad | Left thumbstick while holding the left grip |
+| *(driver's seat on/off, in a race)* | Right thumbstick click |
 
 `adb logcat -s mkdd` shows the app's log.
 
@@ -208,7 +211,12 @@ far_m 4000
 hud_scale 0.5            # how much of the field of view the HUD's frame occupies
 hud_distance_m 4         # how far in front of the camera that frame stands
 hud_height_m 0           # how far above the forward axis its centre sits
-world_pitch_deg 18       # degrees of the chase camera's downward pitch taken out of the world
+world_pitch_deg 18       # the chase camera's downward pitch taken out of the world, in degrees
+follow_camera_pitch 1    #   1 follows the camera's own pitch in a race instead
+fp_x 0                   # where your eyes sit in the driver's seat, in the kart model's
+fp_y 75                  #   units (100 a metre): left, up, forward
+fp_z 20
+fp_hide 45               # draws this near your eyes (the driver's head) are not drawn
 eye_scale 1.4            # eye resolution, times what the headset recommends
 msaa 4                   # antialiasing samples per pixel in stereo
 transition_s 1           # seconds the switch between flat and stereo takes

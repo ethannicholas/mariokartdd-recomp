@@ -2,6 +2,9 @@
 // address was found.
 #include "race.h"
 
+#include <cmath>
+#include <cstring>
+
 #include "recomp.h"
 #include "runtime.h"
 
@@ -10,6 +13,13 @@ namespace {
 
 constexpr uint32_t kRaceManager = 0x803CB7E8;  // RaceMgr::sRaceManager
 constexpr uint32_t kPaused = 0x803CB6DC;       // PauseManager::mIsPause
+constexpr uint32_t kKartCtrl = 0x803CC588;     // the kart controller: the karts' bodies, then
+constexpr uint32_t kCameras = 0x200;           //   the players' cameras (KartCam*)
+// KartCam
+constexpr uint32_t kTargetBody = 0x00;         // the KartBody it follows
+constexpr uint32_t kViewMatrix = 0x80;         // its view matrix, a GX 3x4 by rows
+// KartBody
+constexpr uint32_t kBodyMatrix = 0x110;        // its world matrix, a GX 3x4 by rows
 
 // RaceMgr
 constexpr uint32_t kDirector = 0x18;
@@ -42,6 +52,48 @@ Race race_read() {
     r.demo = mem_r32(info + kDemoType) != 0;
     r.paused = mem_r8(kPaused) != 0;
     return r;
+}
+
+static float rd_f(uint32_t a) {
+    const uint32_t u = mem_r32(a);
+    float f;
+    memcpy(&f, &u, 4);
+    return f;
+}
+
+static uint32_t player_camera() {
+    const uint32_t ctrl = mem_r32(kKartCtrl);
+    if (!in_ram(ctrl, kCameras + 4)) return 0;
+    const uint32_t cam = mem_r32(ctrl + kCameras);
+    return in_ram(cam, 0x294) ? cam : 0;
+}
+
+bool kart_in_view(float out[3][4]) {
+    const uint32_t cam = player_camera();
+    if (!cam) return false;
+    const uint32_t body = mem_r32(cam + kTargetBody);
+    if (!in_ram(body, 0x300)) return false;
+    float v[3][4], k[3][4];
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 4; j++) {
+            v[i][j] = rd_f(cam + kViewMatrix + (i * 4 + j) * 4);
+            k[i][j] = rd_f(body + kBodyMatrix + (i * 4 + j) * 4);
+            if (!std::isfinite(v[i][j]) || !std::isfinite(k[i][j])) return false;
+        }
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 4; j++)
+            out[i][j] = v[i][0] * k[0][j] + v[i][1] * k[1][j] + v[i][2] * k[2][j] + (j == 3 ? v[i][3] : 0.0f);
+    return true;
+}
+
+bool camera_pitch(float* out) {
+    const uint32_t cam = player_camera();
+    if (!cam) return false;
+    // The world's up is the rotation's second column: (m[0][1], m[1][1], m[2][1]).
+    const float y = rd_f(cam + kViewMatrix + 0x14), z = rd_f(cam + kViewMatrix + 0x24);
+    if (!std::isfinite(y) || !std::isfinite(z) || y * y + z * z < 0.5f) return false;
+    *out = atan2f(z, y);
+    return true;
 }
 
 }  // namespace mkdd

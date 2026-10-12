@@ -33,6 +33,15 @@ struct Race {
 
 Race race_read();
 
+// How far the first player's camera looks down, in radians: atan2 of the world's up in the
+// camera's frame (KartCam's view matrix). False when there is no camera.
+bool camera_pitch(float* out);
+
+// The first player's kart in their camera's view space: the kart body's world matrix
+// (KartBody+0x110; its columns are the kart's left, up and forward, the fourth its position)
+// through the camera's view matrix. GX 3x4, by rows. False when there is no camera.
+bool kart_in_view(float out[3][4]);
+
 // A race the player drives on one screen, from the grid to the finish, and not paused.
 inline bool race_live(const Race& r) {
     return r.exists && !r.demo && r.players >= 1 && r.screens == 1 && r.mode >= kTimeAttack &&
