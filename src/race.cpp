@@ -21,6 +21,12 @@ constexpr uint32_t kViewMatrix = 0x80;         // its view matrix, a GX 3x4 by r
 // KartBody
 constexpr uint32_t kBodyMatrix = 0x110;        // its world matrix, a GX 3x4 by rows
 constexpr uint32_t kBodySpeed = 0x444;         // mSpeed: units a frame
+constexpr uint32_t kBodyGround = 0x2C;         // mBodyGround, a CrsGround: its attribute at
+constexpr uint32_t kGroundAttr = 0x4C;         //   +0x4C and its material at +0x54
+constexpr uint32_t kGroundMaterial = 0x54;
+constexpr uint32_t kBodyRpm = 0x44C;           // mCarRPM
+constexpr uint32_t kBodyStatus = 0x574;        // mCarStatus, a u64 at 0x570: its low word
+constexpr uint32_t kBodyTouch = 0x5A4;         // mTouchNum
 
 // RaceMgr
 constexpr uint32_t kDirector = 0x18;
@@ -91,14 +97,19 @@ bool kart_pose(KartPose* out) {
     const uint32_t cam = player_camera();
     if (!cam) return false;
     const uint32_t body = mem_r32(cam + kTargetBody);
-    if (!in_ram(body, kBodySpeed + 4)) return false;
+    if (!in_ram(body, kBodyTouch + 4)) return false;
     for (int i = 0; i < 3; i++)
         for (int j = 0; j < 4; j++) {
             out->m[i][j] = rd_f(body + kBodyMatrix + (i * 4 + j) * 4);
             if (!std::isfinite(out->m[i][j])) return false;
         }
     out->speed = rd_f(body + kBodySpeed);
-    return std::isfinite(out->speed);
+    out->rpm = rd_f(body + kBodyRpm);
+    out->status = mem_r32(body + kBodyStatus);
+    out->wheels_down = (int32_t)mem_r32(body + kBodyTouch);
+    out->ground = mem_r32(body + kBodyGround + kGroundAttr);
+    out->material = mem_r32(body + kBodyGround + kGroundMaterial);
+    return std::isfinite(out->speed) && std::isfinite(out->rpm);
 }
 
 bool camera_pitch(float* out) {

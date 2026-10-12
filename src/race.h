@@ -49,7 +49,17 @@ bool kart_in_view(float out[3][4]);
 struct KartPose {
     float m[3][4];
     float speed;
+    uint32_t status;     // mCarStatus's low word: see the kStatus bits
+    float rpm;           // mCarRPM: 300 at rest to 16300; the game reads 5000 as flat out
+    int wheels_down;     // mTouchNum: wheels on the ground
+    uint32_t ground;     // the course attribute under the body (CrsGround), 0xFF for none
+    uint32_t material;   //   and its material
 };
+constexpr uint32_t kStatusDrift = 0x3;          // a power slide (KartCtrl::GetDriftCnt)
+constexpr uint32_t kStatusAirborne = 0x40;
+constexpr uint32_t kStatusSpin = 0x80000;       // KartCrash::MakeSpin
+constexpr uint32_t kStatusCrash = 0x100000;     // any crash: a spin, a shell, a bomb
+constexpr uint32_t kStatusHalfSpin = 0x1000000; // KartCrash::MakeHalfSpin
 bool kart_pose(KartPose* out);
 
 // A race the player drives on one screen, from the grid to the finish, and not paused.

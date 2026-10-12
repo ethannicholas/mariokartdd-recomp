@@ -161,24 +161,45 @@ The platform moves only during your own race, from the grid to the finish: it ea
 in the menus, while paused, in split screen and at the end of a race, and eases back in when
 one starts or you resume. Pitch and roll are your kart's against the horizontal; surge, sway
 and heave are its accelerations. Karts corner at several g at the game's own scale, so those
-are scaled down before they are sent. Every channel can be scaled, inverted or limited with
-a `telemetry.txt` in the directory you run the game from (all optional):
+are scaled down before they are sent.
+
+The platform does not yaw with every turn. It yaws into a power slide, by the angle of the
+slide, and thrashes from side to side when you spin out or are hit. The road has a texture,
+rougher on the grass and the dirt than on the road, and none in the air; the engine is sent
+for a shaker's engine effect, rising with your speed.
+
+Every channel can be scaled, inverted or limited with a `telemetry.txt` in the directory you
+run the game from (all optional):
 
 ```
 accel_scale 0.3     # what the kart's accelerations are multiplied by before anything else
-pitch_gain 1        # multiply each channel; a negative value inverts it
+pitch_gain 2        # multiply each channel; a negative value inverts it
 roll_gain 1
 yaw_gain 1
+drift_yaw_gain 0.25 # yaw in a slide, times the slide's angle
+drift_yaw_max 15    #   and at most this, in degrees
+drift_fade_s 0.25   #   eased in and out over this
+spin_yaw 12         # how far a spin-out swings the platform each way, in degrees
+road_texture 0.4    # how rough the road is, 0 to 1
+offroad_texture 0.9 #   and the grass and the dirt
+texture_gain 1      # all of the road texture
+texture_heave 1.5   #   its size at roughness 1 and full speed: m/s^2,
+texture_pitch 0.3   #   degrees
+texture_roll 0.5    #   and degrees
+texture_hz 8        #   and how fast it is
+texture_speed_kmh 60 #  the speed from which it is at full size
+idle_rpm 900        # the engine at a standstill
+max_rpm 8000        #   and flat out
+top_kmh 130         #   at this speed
 surge_gain 1        # forward acceleration
 sway_gain 1         # sideways acceleration
 heave_gain 1        # acceleration along the kart's up
 fade_s 1            # seconds to ease in and out of rest
 max_angle 25        # the most pitch, roll or yaw sent, in degrees
 angle_rate 120      #   and how fast pitch and roll may change, in degrees a second
-yaw_rate 60         #   and yaw
+yaw_rate 360        #   and yaw
 max_accel 15        # the most acceleration sent, in m/s^2 (about 1.5 g)
 accel_rate 300      #   and how fast it may change, in m/s^2 a second
-yaw_washout_s 1.5   # yaw is sent as the turn in progress, returning to centre over this
 accel_s 0.15        # seconds over which accelerations are smoothed; higher is gentler
 velocity_s 0.05     # the same for the velocity they are taken from
 log 0               # 1 prints what is sent, twice a second

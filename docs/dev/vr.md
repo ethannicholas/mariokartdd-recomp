@@ -100,6 +100,8 @@ the accelerations scaled by `accel_scale` (0.3); inactive whenever the eyes are 
 stereo (`race_live` and the wait after a pause), and a jump of over 300 units in a frame
 (Lakitu putting the kart back) sent as a discontinuity.
 
+What the platform does with it was retuned after a first ride (below, "On a rig").
+
 The scale is the game's own: `mSpeed` (KartBody+0x444, from the decompilation's
 `KartBody` layout, which agrees with the retail offsets of the matrix and the position) times
 2.16 is `GetCarSpeed`'s km/h, which is 3.6 * 60 / 100, and the speed differenced from the
@@ -109,8 +111,54 @@ the turn) and a negative slide (the kart sliding outward), as `telemetry.h` defi
 The accelerations at that scale are a kart's: about 4 m/s^2 accelerating at 80 km/h, 20-50
 m/s^2 sideways through the first turn at 95 km/h, and 50-90 bouncing over the grass into the
 wall. Unscaled, every channel sat at the shared 15 m/s^2 limit through the turn, hence 0.3.
-`MKDD_MOTIONLOG=1` prints what goes into the telemetry module, `GCN_TELEMETRY_LOG=1` what
-comes out; `--telemetry=127.0.0.1:<another port>` keeps it from a running SimRacingStudio.
+`MKDD_MOTIONLOG=1` prints what goes into the telemetry module, with the kart's status
+bits, the ground under it and its revs (`MKDD_MOTIONLOG_EVERY=n` every nth frame), and
+`GCN_TELEMETRY_LOG=1` what comes out; `--telemetry=127.0.0.1:<another port>` keeps it from a
+running SimRacingStudio. A recorded session (`saves/inputs/`) replayed with `--headless
+--fast` and these logs is how the numbers below were found.
+
+| where | what |
+|---|---|
+| KartBody+0x2C | `mBodyGround`, a `CrsGround`: its attribute at +0x4C (KartBody+0x78), its material at +0x54 (+0x80) |
+| KartBody+0x44C | `mCarRPM`: the wheels' spin summed, times 40, plus 300, at most 16300 |
+| KartBody+0x570 | `mCarStatus`, a u64; its low word at +0x574 holds every bit used here |
+| KartBody+0x5A4 | `mTouchNum`, wheels on the ground |
+
+From the decompilation, and seen in a replayed session: `mCarStatus` & 3 is a power slide
+(`KartCtrl::GetDriftCnt`), 0x40 airborne, 0x100000 any crash, with 0x80000 a spin
+(`KartCrash::MakeSpin`: 0x180000 seen, the kart turning through 708 degrees in about 80
+frames), 0x200000 a tumble (0x300000 seen, the kart pitching through 70 degrees and more), and
+0x1000000 a half spin. 0x8000, 0x20000 and 0x4000 were seen at full speed and are not
+known. Ground attributes seen on Luigi Circuit and the session's other course: 01 the road
+(materials 00, 02, and 03, a rumble), 03 with material 07 the grass (the kart slowed to 85-99
+km/h), 08 with no material at full speed, and 11 with material 1C driven at 95 km/h for 25
+seconds -- the decompilation's water, but not here.
+
+### On a rig
+
+The first version followed the heading with yaw (washed out), sent no engine and no road
+texture, and passed pitch through as it was. On a rig, yawing with every turn was jarring;
+the platform sat dead still on a straight; a steep climb tilted it a couple of degrees; the
+shaker had no engine to play. So now (the top of `motion.cpp`):
+
+- Yaw only in a slide, by the slip angle (the nose 25-75 degrees off the velocity in the
+  session's slides, against 3 degrees median and 17 at the 90th percentile when not
+  sliding; `drift_yaw_gain` 0.25, at most 15 degrees), and a thrash in a crash, the sine of
+  how far the kart has turned since it began times 12 degrees. The shared module sends a
+  game's yaw as it is when it asks (`Motion::yaw_heading` false), and the yaw rate limit is
+  raised to 360 degrees a second for this game.
+- Pitch doubled. Roll not: Luigi Circuit's banked turn is 30-38 degrees for five seconds,
+  which already holds roll at its limit. Both fade out in a crash.
+- A road texture from the shared module, as rough as the ground: 0.4 on the road, 0.9 off
+  it, the rumbling materials at least 0.5-1, nothing in the air.
+- The engine from the speed (900-8000 rpm to 130 km/h), with the game's revs only near a
+  standstill: `mCarRPM` sits at its ceiling at any speed and jumps by thousands between frames
+  as wheels leave the ground.
+
+SimRacingStudio's listener (its installed `apiListener` and `api_definition` modules, whose
+strings are zlib-compressed Cython constants) reads rpm, max rpm, four suspension travels and
+four wheel terrains as well, and has per-wheel rumble; what values its terrain wants is not
+known, so those are left at zero.
 
 ## Still to look at
 
@@ -120,5 +168,6 @@ comes out; `--telemetry=127.0.0.1:<another port>` keeps it from a running SimRac
 - Lens flare: the game tests the sun's visibility by copying 2x2 pixels of the EFB and
   reading them back; what an eye does to that is unexamined.
 - The theater screen as a stereo pair for the 3D menus (`theater_stereo`).
-- Telemetry on a rig: `accel_scale`, whether the grass and the walls are too rough, whether
-  a mini-turbo or a drift reads, and what Lakitu's rescue does.
+- Telemetry on a rig, the second ride: the slide's yaw and the spin's thrash, the road
+  texture's size, pitch doubled, the engine on the shaker; `accel_scale`; what Lakitu's
+  rescue does.
