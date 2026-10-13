@@ -133,7 +133,7 @@ OpenGL.
 
 Connect the headset and start its PC software first. Menus, the course flyovers, the
 results and split-screen races are on a flat screen in front of you; your own race is all
-around you, in stereo 3D, from the moment the camera drops onto the grid to the finish, and
+around you, in stereo 3D, from the countdown on the grid to the finish, and
 goes back to the flat screen while paused. Clicking the right thumbstick in a race puts you
 in the driver's seat, and clicking it again goes back to the game's chase camera. The window
 on the desktop mirrors the headset. A

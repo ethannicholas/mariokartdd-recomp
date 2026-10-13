@@ -98,20 +98,26 @@ void guest_frame(uint32_t frame) {
 // the guest the render thread is. The eye looks along the kart's nose and tilts with it;
 // the head's own tracking is on top of that.
 //
-// The anchor matters: the batch holds other matrices with the kart's rotation and an
-// origin near the body's -- until the race starts, one at the body's own origin, used by
-// two draws of every kart on the grid -- and the nearest to the body's origin put the eye
-// at the wheels' height until the start and in the seat after it. The rotation is the
-// weaker test: the body model is the physics body with the suspension's tilt and the
-// wheelie of a rocket start on top, and the drawn kart lags the guest's by a frame or
-// two, so of the matrices at the anchor the one whose rotation is nearest the kart's is
-// taken, within a wide tolerance (the wheels, spinning, differ by far more and sit well
-// off the anchor anyway). When nothing in the batch matches, the eye is placed from the
-// memory matrix rather than handed back to the chase camera, which flashed the chase view
-// for a frame.
-constexpr float kBodyModelUp = 60.0f;   // the body model's origin, up the kart's axis from the body's
-constexpr float kAnchorRadius = 25.0f;  // how far from there a candidate may be
+// Which matrix is the body model's matters: the batch holds others with the kart's
+// rotation and an origin near the body's. One is a common mesh of 1,704 vertices in two
+// draws at every kart, its origin a little above the body's (13 units up on one kart, 36
+// on another), level when the kart rears or banks, and reaching 120 units below the body's
+// origin -- under the ground -- and 190 above: an envelope round the whole kart, not a
+// part of it. The first version took the nearest to the body's origin and got that one
+// until the start, when the body model won instead, so the eye sat at the wheels' height
+// and then jumped to the seat; the next anchored 60 units up, which is one kart's body
+// model and within reach of another's envelope, so the second kart's eye sat at its axle.
+// The body model is the biggest part that stays above the ground: of the matrices near
+// the body with its rotation, the one drawing the most vertices, none of them further
+// below the body's origin than kBodyFloor. The rotation is the weaker test:
+// the body model is the physics body with the suspension's tilt and the wheelie of a rocket
+// start on top, and the drawn kart lags the guest's by a frame or two, so the tolerance is
+// wide (the wheels, spinning, differ by far more). When nothing in the batch matches, the
+// eye is placed from the memory matrix with the body model's last offset, rather than
+// handed back to the chase camera, which flashed the chase view for a frame.
+constexpr float kNearRadius = 150.0f;   // how far from the body's origin the body model's may be
 constexpr float kRotTolerance = 3.0f;   // sum of the nine rotation entries' differences: about 40 degrees
+constexpr float kBodyFloor = -30.0f;    // how far below the body's origin a body model's vertex may reach
 
 bool eye_hook(const gx::Batch& b, const std::vector<uint8_t>& offscreen, uint32_t frame, gx::EyeOverride& out) {
     // The race opens with the game's camera on Lakitu and his signal, then dropping onto
@@ -124,24 +130,55 @@ bool eye_hook(const gx::Batch& b, const std::vector<uint8_t>& offscreen, uint32_
         if (!g_have_kart) return false;
         memcpy(k, g_kart, sizeof(k));
     }
-    // Where the body model's origin should be, in view space.
-    float anchor[3];
-    for (int i = 0; i < 3; i++) anchor[i] = k[i][3] + k[i][1] * kBodyModelUp;
     const size_t n = b.mtxs.size() / 12;
-    int best = -1;
-    float best_rot = kRotTolerance;
+    // The matrices near the body with its rotation, and for each the vertices drawn with
+    // it and their mean height above the body's origin, up the kart's axis.
+    std::vector<uint8_t> near(n, 0);
+    std::vector<uint32_t> verts(n, 0);
+    std::vector<float> height(n, 0.0f), lowest(n, 1e30f), highest(n, -1e30f);
     for (size_t m = 0; m < n; m++) {
         const float* q = &b.mtxs[m * 12];
-        const float dx = q[3] - anchor[0], dy = q[7] - anchor[1], dz = q[11] - anchor[2];
-        if (dx * dx + dy * dy + dz * dz > kAnchorRadius * kAnchorRadius) continue;
+        const float dx = q[3] - k[0][3], dy = q[7] - k[1][3], dz = q[11] - k[2][3];
+        if (dx * dx + dy * dy + dz * dz > kNearRadius * kNearRadius) continue;
         float rot = 0.0f;
         for (int i = 0; i < 3; i++)
             for (int j = 0; j < 3; j++) rot += fabsf(q[i * 4 + j] - k[i][j]);
-        if (rot < best_rot) {
-            best_rot = rot;
+        near[m] = rot <= kRotTolerance;
+    }
+    for (size_t i = 0; i < b.cmds.size(); i++) {
+        const gx::Cmd& c = b.cmds[i];
+        if (c.type != gx::CmdType::Draw || offscreen[i] || (size_t)c.mtx >= n || !near[c.mtx]) continue;
+        for (uint32_t t = 0; t < c.count; t++) {
+            const float* p = b.verts[b.indices[c.first + t]].pos;
+            const float h = k[0][1] * (p[0] - k[0][3]) + k[1][1] * (p[1] - k[1][3]) + k[2][1] * (p[2] - k[2][3]);
+            height[c.mtx] += h;
+            if (h < lowest[c.mtx]) lowest[c.mtx] = h;
+            if (h > highest[c.mtx]) highest[c.mtx] = h;
+        }
+        verts[c.mtx] += c.count;
+    }
+    int best = -1;
+    uint32_t best_verts = 0;
+    for (size_t m = 0; m < n; m++) {
+        if (!near[m] || !verts[m]) continue;
+        height[m] /= (float)verts[m];
+        if (lowest[m] < kBodyFloor) continue;
+        if (verts[m] > best_verts) {
+            best_verts = verts[m];
             best = (int)m;
         }
     }
+    // The body model's origin in the kart's frame, remembered for the frames the batch has
+    // no match in (and across karts: it differs from one to the next).
+    static float model_offset[3] = {0.0f, 60.0f, 0.0f};
+    if (best >= 0) {
+        const float* q = &b.mtxs[best * 12];
+        const float dx = q[3] - k[0][3], dy = q[7] - k[1][3], dz = q[11] - k[2][3];
+        for (int j = 0; j < 3; j++) model_offset[j] = k[0][j] * dx + k[1][j] * dy + k[2][j] * dz;
+    }
+    float anchor[3];
+    for (int i = 0; i < 3; i++)
+        anchor[i] = k[i][3] + k[i][0] * model_offset[0] + k[i][1] * model_offset[1] + k[i][2] * model_offset[2];
     // MKDD_FPLOG=1: every candidate matrix with the kart's rotation, its origin in the
     // kart's own frame (left, up, forward from the body's origin), how many draws use it,
     // and which one the eye took.
@@ -158,14 +195,15 @@ bool eye_hook(const gx::Batch& b, const std::vector<uint8_t>& offscreen, uint32_
             for (int i = 0; i < 3; i++)
                 for (int j = 0; j < 3; j++) rot += fabsf(q[i * 4 + j] - k[i][j]);
             const float dx = q[3] - k[0][3], dy = q[7] - k[1][3], dz = q[11] - k[2][3];
-            // Everything within 150 units of the body, whatever its rotation.
-            if (rot > kRotTolerance && dx * dx + dy * dy + dz * dz > 150.0f * 150.0f) continue;
+            // Everything within 300 units of the body, whatever its rotation.
+            if (rot > kRotTolerance && dx * dx + dy * dy + dz * dz > 300.0f * 300.0f) continue;
             // Into the kart's frame: the columns of k are its axes in view space.
             const float lx = k[0][0] * dx + k[1][0] * dy + k[2][0] * dz;
             const float ly = k[0][1] * dx + k[1][1] * dy + k[2][1] * dz;
             const float lz = k[0][2] * dx + k[1][2] * dy + k[2][2] * dz;
-            fprintf(stderr, "[fp]   m%zu local=(%.1f,%.1f,%.1f) rot=%.3f draws=%d%s\n", m, lx, ly, lz, rot, uses[m],
-                    (int)m == best ? " <-" : "");
+            fprintf(stderr, "[fp]   m%zu local=(%.1f,%.1f,%.1f) rot=%.3f draws=%d verts=%u height=%.1f (%.1f..%.1f)%s\n", m, lx,
+                    ly, lz, rot, uses[m], verts[m], near[m] ? height[m] : 0.0f, near[m] && verts[m] ? lowest[m] : 0.0f,
+                    near[m] && verts[m] ? highest[m] : 0.0f, (int)m == best ? " <-" : "");
         }
     }
     // Nothing in the batch: the body model as the memory matrix places it.

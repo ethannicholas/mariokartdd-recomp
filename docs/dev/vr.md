@@ -42,12 +42,13 @@ From the decompilation's headers (`RaceMgr.h`, `RaceDirector.h`, `RaceInfo.h`,
 ## When to be in stereo
 
 `race_live`: a race scene, not the attract demo, at least one human player, one screen, a
-racing or battle mode, phase 17, not paused. So stereo from the grid through the
-countdown to the finish; the flat screen for the menus, the flyover, the pause menu, the
-results, the award ceremony and split screen. After a pause, stereo comes back only once
-the race has been live for 45 frames, so quitting from the pause menu does not blink
-into stereo on the way out. On the scripted route: stereo at frame 6306, the flat screen at
-the pause (7202), stereo again at 7508.
+racing or battle mode, phase 17 past its opening shot (run state 1 or 2), not paused. So
+stereo from the countdown to the finish; the flat screen for the menus, the flyover, the
+opening shot on Lakitu and the drop onto the grid (see "First person" for why), the pause
+menu, the results, the award ceremony and split screen. After a pause, stereo comes back
+only once the race has been live for 45 frames, so quitting from the pause menu does not
+blink into stereo on the way out. On the scripted route, before the opening shot was left
+out: stereo at frame 6306, the flat screen at the pause (7202), stereo again at 7508.
 
 ## Scale and pitch
 
@@ -78,37 +79,51 @@ The game has no cockpit camera, so first person (the right thumbstick click; `--
 with `--eye` on the desktop) is an eye hook that puts the eye in the driver's seat. Each
 frame the guest thread reads the kart's matrix in the camera's view space (`kart_in_view`:
 the body's world matrix through the camera's view). The eye hook, on the render thread,
-looks in that frame's batch for the kart body model's position matrix -- the one whose
-origin sits 60 units up the kart's axis from the body's, and of those (there is one) whose
-rotation is nearest the kart's -- and places the eye at (`fp_x`, `fp_y`, `fp_z`) =
-(0, 75, 20) in it, looking along the kart's nose and tilting with it. Taking the kart from
-the batch rather than from memory keeps the eye on exactly the kart that frame draws; when
-the batch has nothing at that point, the eye is placed from the memory matrix instead.
-Draws whose position matrix's origin is within `fp_hide` (45 units) of the eye -- the
-driver's head and shoulders -- are left out of the eyes.
+looks in that frame's batch for the kart body model's position matrix and places the eye
+at (`fp_x`, `fp_y`, `fp_z`) = (0, 75, 20) in it, looking along the kart's nose and tilting
+with it. Taking the kart from the batch rather than from memory keeps the eye on exactly
+the kart that frame draws; when the batch has nothing, the eye is placed from the memory
+matrix with the body model's last offset. Draws whose position matrix's origin is within
+`fp_hide` (45 units) of the eye -- the driver's head and shoulders -- are left out of the
+eyes.
 
-In the eye preview this gives the steering wheel and the kart's nose ahead, the front tyres
-at the edges. Lakitu, who the game hangs in front of its camera at the start and when the
-kart is stuck, hangs close in front of the eye too.
+Which matrix is the body model's took three tries, each checked by replaying a headset
+session on the device (`MKDD_FPLOG=1` lists every matrix near the kart in the kart's own
+frame, with its rotation's distance from the kart's, its draws and vertices and its
+vertices' heights, and the one taken). What the batch holds near a kart, with the kart's
+rotation:
 
-The first version took the matrix with the kart's rotation (to within a tight tolerance)
-whose origin was nearest the *body's*, and in the headset the seat bounced between
-heights. The replayed session (`MKDD_FPLOG=1` lists every matrix near the kart, in the
-kart's own frame, and the one taken) showed why: until the race starts the batch holds a
-matrix at the body's own origin, two draws for every kart on the grid, which won over the
-body model 60 units up and put the eye at the wheels' height; and whenever the drawn kart's
-rotation was outside the tolerance -- it lags the guest's by a frame or two, and the body
-model carries the suspension's tilt and the wheelie of a rocket start -- the hook found
-nothing and handed the frame back to the chase camera, so the view flashed between the two.
-The wheels (spinning, far off in rotation) and the riders (a metre up) are well clear of the
-anchor, so the rotation tolerance can be wide.
+- the body model: one draw, 1,400 vertices or so, its origin 60 units up the kart's axis on
+  Mario's kart and 99 on Daisy's, its vertices from 40 to 190 units up;
+- a common mesh of 1,704 vertices in two draws at every kart, its origin 13 units up on one
+  kart and 36 on another, level when the kart rears or banks, and reaching 120 units below
+  the body's origin -- under the ground -- and 190 above: an envelope round the whole kart,
+  not a part of it;
+- the four wheels, 350-400 vertices each, far off in rotation as they spin;
+- the riders' joints, many small draws, whose matrices are skinning matrices (the joint
+  times its inverse bind pose), so their origins are not positions and cannot anchor
+  anything.
+
+The first version took the matrix with the kart's rotation, to a tight tolerance, nearest
+the body's origin: the envelope until the race started, when the body model won instead,
+so the eye sat at the wheels' height and jumped to the seat at the start; and whenever the
+drawn kart's rotation was outside the tolerance -- it lags the guest's by a frame or two,
+and the body model carries the suspension's tilt and the wheelie of a rocket start -- the
+hook found nothing and handed the frame back to the chase camera, so the view flashed
+between the two. The second anchored 60 units up, which is Mario's kart's body model and
+within reach of Daisy's kart's envelope, so on her kart the eye sat at the axle, among the
+suspension arms. Now it is the biggest part that stays above the ground: of the matrices
+within 150 units with the kart's rotation to a wide tolerance, the one drawing the most
+vertices none of which reach more than 30 units below the body's origin. Both karts take
+their body model on every frame of their sessions.
 
 The race opens with the game's camera on Lakitu and his signal, then dropping onto the grid
 (`RaceDirector`'s run state 0), and the game draws only what that camera sees: the player's
-kart is not in those frames at all, nor most of the others -- what the headset showed as
-the kart's wheels missing at the start. So the eye stays with the game's camera until the
-countdown (run state 1) and takes the seat there. The dark checkerboard over the opening
-shot is the game's own fade-in.
+kart body is in those frames but its wheels are not, nor most of the other karts -- in the
+headset, karts without wheels at the start, in the chase view as much as the seat. It is
+the game's own cinematic, so it is watched on the panel: `race_live` starts at the
+countdown (run state 1), and the world opens out around the viewer there. The dark
+checkerboard over the opening shot is the game's own fade-in.
 
 ## The item boxes' question marks
 

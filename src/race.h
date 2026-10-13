@@ -65,10 +65,14 @@ constexpr uint32_t kStatusCrash = 0x100000;     // any crash: a spin, a shell, a
 constexpr uint32_t kStatusHalfSpin = 0x1000000; // KartCrash::MakeHalfSpin
 bool kart_pose(KartPose* out);
 
-// A race the player drives on one screen, from the grid to the finish, and not paused.
+// A race the player drives on one screen, from the countdown to the finish, and not
+// paused. Not the opening shot before it (run state 0: the game's camera on Lakitu and his
+// signal, then dropping onto the grid): the game draws only what that camera sees, so in
+// stereo a viewer looking elsewhere saw karts without their wheels. It is the game's own
+// cinematic, and is watched on the panel.
 inline bool race_live(const Race& r) {
     return r.exists && !r.demo && r.players >= 1 && r.screens == 1 && r.mode >= kTimeAttack &&
-           r.mode <= kEscapeBattle && r.phase == kRunning && !r.paused;
+           r.mode <= kEscapeBattle && r.phase == kRunning && r.run_state != 0 && !r.paused;
 }
 
 }  // namespace mkdd
