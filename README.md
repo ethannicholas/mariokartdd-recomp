@@ -204,8 +204,8 @@ log 0               # 1 prints what is sent, twice a second
 
 ## Running on a Quest 3
 
-Early: the app builds from the same scripts as the other gcn-recomp games, but has not yet
-been played in the headset. The scripts are PowerShell, so these steps are for a Windows PC.
+Early: a first race has been driven in the headset, in the driver's seat. The scripts are
+PowerShell, so these steps are for a Windows PC.
 
 ### Requirements
 

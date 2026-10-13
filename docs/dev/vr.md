@@ -9,9 +9,16 @@ are gcn-recomp's (`openxr/`, `android/`, `runtime/telemetry.*`). What is this ga
   on the guest thread (`gx::set_guest_frame_hook`), whether to be in stereo;
 - `motion.cpp` turns the player's kart into telemetry.
 
-Not yet worn: everything below was checked with the desktop eye preview (`--eye`, which
-renders through the stereo path with the game's own VR settings and eye filter) and the
-stereo log (`MKDD_VRLOG=1`).
+Worn for the first time on 2026-10-12, on a Quest 3, in first person. Most of what is
+below was checked with the desktop eye preview (`--eye`, which renders through the stereo
+path with the game's own VR settings and eye filter) and the stereo log (`MKDD_VRLOG=1`);
+what the headset showed was reproduced on the headset itself, with no PC build at hand, by
+replaying the session's input log (`inputs/<timestamp>/` in the app's files directory)
+through the device-side tool: `mkdd_egl` pushed to `/data/local/tmp`, run from the files
+directory over `adb shell` with `GCN_REPLAY=inputs/<timestamp>`, `--eye --first-person
+--eye-fov=43,52` and `--dump-dir`, and the frames pulled back (`gcn-recomp
+docs/diagnostics.md`, "On a headset"). `GCN_DRAWLOG=<frame>` and `GCN_PNMLOG=<frame>`
+there, in the flat view, are what found the item boxes' question marks below.
 
 ## What the game's memory says
 
@@ -71,17 +78,51 @@ The game has no cockpit camera, so first person (the right thumbstick click; `--
 with `--eye` on the desktop) is an eye hook that puts the eye in the driver's seat. Each
 frame the guest thread reads the kart's matrix in the camera's view space (`kart_in_view`:
 the body's world matrix through the camera's view). The eye hook, on the render thread,
-looks in that frame's batch for the position matrix with the same rotation whose origin is
-nearest -- the kart body model, whose origin sits 60 units up the kart's axis from the
-body's -- and places the eye at (`fp_x`, `fp_y`, `fp_z`) = (0, 75, 20) in it, looking
-along the kart's nose and tilting with it. Taking the kart from the batch rather than from
-memory keeps the eye on exactly the kart that frame draws. Draws whose position matrix's
-origin is within `fp_hide` (45 units) of the eye -- the driver's head and shoulders -- are
-left out of the eyes.
+looks in that frame's batch for the kart body model's position matrix -- the one whose
+origin sits 60 units up the kart's axis from the body's, and of those (there is one) whose
+rotation is nearest the kart's -- and places the eye at (`fp_x`, `fp_y`, `fp_z`) =
+(0, 75, 20) in it, looking along the kart's nose and tilting with it. Taking the kart from
+the batch rather than from memory keeps the eye on exactly the kart that frame draws; when
+the batch has nothing at that point, the eye is placed from the memory matrix instead.
+Draws whose position matrix's origin is within `fp_hide` (45 units) of the eye -- the
+driver's head and shoulders -- are left out of the eyes.
 
 In the eye preview this gives the steering wheel and the kart's nose ahead, the front tyres
 at the edges. Lakitu, who the game hangs in front of its camera at the start and when the
 kart is stuck, hangs close in front of the eye too.
+
+The first version took the matrix with the kart's rotation (to within a tight tolerance)
+whose origin was nearest the *body's*, and in the headset the seat bounced between
+heights. The replayed session (`MKDD_FPLOG=1` lists every matrix near the kart, in the
+kart's own frame, and the one taken) showed why: until the race starts the batch holds a
+matrix at the body's own origin, two draws for every kart on the grid, which won over the
+body model 60 units up and put the eye at the wheels' height; and whenever the drawn kart's
+rotation was outside the tolerance -- it lags the guest's by a frame or two, and the body
+model carries the suspension's tilt and the wheelie of a rocket start -- the hook found
+nothing and handed the frame back to the chase camera, so the view flashed between the two.
+The wheels (spinning, far off in rotation) and the riders (a metre up) are well clear of the
+anchor, so the rotation tolerance can be wide.
+
+The race opens with the game's camera on Lakitu and his signal, then dropping onto the grid
+(`RaceDirector`'s run state 0), and the game draws only what that camera sees: the player's
+kart is not in those frames at all, nor most of the others -- what the headset showed as
+the kart's wheels missing at the start. So the eye stays with the game's camera until the
+countdown (run state 1) and takes the seat there. The dark checkerboard over the opening
+shot is the game's own fade-in.
+
+## The item boxes' question marks
+
+In the headset, in the driver's seat, the question marks hung in the sky and sank onto
+their boxes as they neared. Each is a billboard: a six-vertex sprite whose position matrix
+is the identity rotation with the box's view-space position (`GCN_PNMLOG` shows them as
+`ident=1`), which J3D builds for a billboard. The renderer reads a perspective draw with an
+untilted view-space matrix as something the game holds in front of its camera (a rig of
+lights, in the game that taught it) and draws it with the head's transform only -- not the
+world's pitch correction, and not this eye hook -- so the sprites stayed where the chase
+camera saw them while the eye moved into the seat. `view_space_world` (`vr.txt`; set by
+`config_defaults`) tells it that this game's view-space draws are billboards in the world,
+and they go through the world's transform like everything else, facing the chase camera
+rather than the eye, which inside a translucent box does not show.
 ## What the eyes leave out
 
 The race's post-processing is orthographic and samples EFB copies: draws that put a
@@ -169,9 +210,13 @@ known, so those are left at zero.
 
 ## Still to look at
 
-- Wearing it: scale, the HUD's distance and size, the pitch, comfort at speed.
-- First person in a headset: the seat's height, whether tilting with the kart on slopes and
-  bumps is comfortable or the view should be levelled, Lakitu up close.
+- Wearing it, further: scale, the HUD's distance and size, the pitch, comfort at speed.
+- First person in a headset, further: the seat's height, whether tilting with the kart on
+  slopes and bumps is comfortable or the view should be levelled, Lakitu up close.
+- The session's input log counts 47,716 pad polls (120 Hz: about 400 s) against 3,764
+  frames, with catch-up jumps of tens of thousands of edges: the app was running the game
+  well below full speed in the headset, or the clock jumped through the loads. Not yet
+  measured.
 - Lens flare: the game tests the sun's visibility by copying 2x2 pixels of the EFB and
   reading them back; what an eye does to that is unexamined.
 - The theater screen as a stereo pair for the 3D menus (`theater_stereo`).

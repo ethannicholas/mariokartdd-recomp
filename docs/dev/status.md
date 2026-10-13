@@ -45,6 +45,16 @@ flow and into a race:
   and the copy's box filter left it undarkened round anything in front (`graphics.md`,
   "Constant destination alpha").
 
+## 2026-10-12, later: worn
+
+Installed on a Quest 3 and a race driven in first person. Three things seen in the headset
+and reproduced by replaying the session's input log on the device (`vr.md`): the seat
+bouncing between heights (the eye hook's choice of matrix, and its fallback to the chase
+camera), the item boxes' question marks hanging in the sky (billboards taken for
+camera-held draws; `view_space_world`), and the kart's wheels missing at the start (the
+game's opening shot is on Lakitu, and it draws only what its own camera sees; the seat now
+waits for the countdown).
+
 ## Next
 
 - A route that steers round a whole race, then the rest of the cup; the other modes.
