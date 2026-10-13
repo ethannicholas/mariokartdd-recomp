@@ -37,6 +37,11 @@ flow and into a race:
   the far depth. The renderer had no Z textures, so the quad wrote the nearest depth over
   the frame and every later draw failed the depth test. Found by skipping draws
   (`GCN_DRAW_SKIP=0-0` brought the whole race back).
+- The karts had no shadows, and a pixel-wide halo of bright sky ringed the drivers against
+  the water. The game sets a constant destination alpha (`GXSetDstAlpha`, 0xE7) on nearly
+  every draw and leaves it off only for the shadows, which a full-screen pass then darkens
+  through a copy of the EFB's alpha; the renderer ignored the register, so the pass
+  darkened the sky instead (`graphics.md`, "Constant destination alpha").
 
 ## Next
 
@@ -46,3 +51,5 @@ flow and into a race:
   checked in the desktop eye preview; the Quest targets cross-compile; PC VR is built on
   Windows only.
 - Windows: `build.ps1` is in but has not been run here.
+- The water at Luigi Circuit's start cycles through magenta and purple to blue (seen in the
+  last seconds of a replayed race); not yet looked at.
