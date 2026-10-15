@@ -7,10 +7,7 @@ The game's PowerPC code is translated ahead of time into C, then compiled and li
 against a runtime that stands in for the GameCube hardware (graphics, audio, DVD,
 controllers, memory card). The result is a native program that runs the original game logic
 without an emulator's CPU core. The recompiler and runtime are
-[gcn-recomp](https://github.com/ethannicholas/gcn-recomp), shared with
-[bluestorm-recomp](https://github.com/ethannicholas/bluestorm-recomp),
-[prime-recomp](https://github.com/ethannicholas/prime-recomp) and
-[fzerogx-recomp](https://github.com/ethannicholas/fzerogx-recomp).
+[gcn-recomp](https://github.com/ethannicholas/gcn-recomp).
 
 > **This repository contains no game code or data.** You must supply your own disc image,
 > dumped from a copy of the game that you own. The build process reads the code out of
@@ -121,8 +118,6 @@ that off.
 
 ## Playing in VR on a PC
 
-Early: built, but not yet tried in a headset.
-
 On Windows, `--vr` plays the game on a PC VR headset through OpenXR, using whichever runtime
 is set as active: SteamVR, Virtual Desktop, Meta Quest Link, or any other that supports
 OpenGL.
@@ -144,8 +139,6 @@ Settings are read from a `vr.txt` in the directory you run the game from; see
 `XR_RUNTIME_JSON` at its manifest.
 
 ## Motion platforms
-
-Early: sends the right data, but not yet tried on a rig.
 
 `--telemetry` sends your kart's motion to a motion simulator, in the format of
 [SimRacingStudio](https://www.simracingstudio.com/)'s custom game API: UDP packets to
