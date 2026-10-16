@@ -208,17 +208,16 @@ texture, and passed pitch through as it was. On a rig, yawing with every turn wa
 the platform sat dead still on a straight; a steep climb tilted it a couple of degrees; the
 shaker had no engine to play. So now (the top of `motion.cpp`):
 
-- Yaw only in a slide, by the slip angle (the nose 25-75 degrees off the velocity in the
-  session's slides, against 3 degrees median and 17 at the 90th percentile when not
-  sliding; `drift_yaw_gain` 0.25, at most 15 degrees), and a thrash in a crash: 20 degrees
-  times the sine of a phase. The phase was how far the kart's heading had turned since the
-  crash began, times 12 degrees, on the belief that a spin-out turns the kart; a rider hit
-  by a shell felt the platform barely move, and the motion log of a replayed Grand Prix
-  showed why: through most crashes the heading turns 0-20 degrees (the model spins, the
-  body does not), so the sine stayed near 0. The phase now advances at least a turn every
-  `spin_period_s` (0.5), following the heading when it turns faster. The shared module
-  sends the yaw as it is, and the yaw rate limit is raised to 360 degrees a second for
-  this game.
+- Yaw is the slip angle, the kart's facing against its direction of travel: 3 degrees
+  median and 17 at the 90th percentile on the road, 25-75 in a slide. It was first only in a
+  slide, scaled by 0.25 to at most 15 degrees, with a thrash in a crash: 12, then 20,
+  degrees times the sine of how far the heading had turned. A rider hit by a shell felt the
+  platform barely move, and the motion log of a replayed Grand Prix showed why: through
+  most crashes the heading turns 0-20 degrees (the model spins, the body does not). The
+  thrash was made to advance at a steady rate, and then the rider asked for the plain slip
+  angle at all times instead. Below 4 m/s it fades out, to nothing at 1. The shared module
+  sends the yaw as it is, and the yaw rate limit is raised to 360 degrees a second for this
+  game.
 - Pitch doubled. Roll not: Luigi Circuit's banked turn is 30-38 degrees for five seconds,
   which already holds roll at its limit. Both fade out in a crash.
 - A road texture. First made up in the shared module from the ground's type, as filtered

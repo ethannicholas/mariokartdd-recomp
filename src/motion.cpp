@@ -22,22 +22,16 @@
 // a crash the kart tumbles through 70 degrees and more; pitch and roll fade out for it and the
 // yaw's thrash (below) stands for it instead.
 //
-// Yaw is not the heading. Turning the platform with every turn of the kart was jarring, and
-// it cannot turn all the way round anyway, so it yaws only for what a driver would feel
-// through the seat (Motion::yaw_heading false):
-// - in a power slide (mCarStatus & 3), the slip angle -- the kart's nose against the way it
-//   is going, positive with the nose to the right of it, 25-75 degrees in a slide -- times
-//   `drift_yaw_gain` (0.25), at most `drift_yaw_max` (15) degrees, eased in and out over
-//   `drift_fade_s`;
-// - in a spin or a crash (KartCrash's status bits), a thrash: `spin_yaw` (20) degrees times
-//   the sine of a phase, so the platform swings back and forth. The phase is how far the
-//   kart's heading has turned since the crash began, but never slower than one turn in
-//   `spin_period_s` (0.5): a shell's hit spins the kart's model, not its body, whose heading
-//   turned 0-20 degrees through most of the crashes in a replayed Grand Prix, so a phase
-//   from the heading alone left the platform all but still. `yaw_rate` is raised to 360
-//   degrees a second to let the thrash through.
-// The sideways velocity (Motion::sway_velocity) is sent only then too, for a profile that
-// takes traction loss from it.
+// Yaw is not the heading, which a platform cannot follow round a course: it is the slip
+// angle, the kart's facing against its direction of travel, positive with the nose to the
+// right of it -- 3 degrees median on the road, 25-75 in a power slide. Going backwards it is
+// measured against the reverse of the travel, so it stays within 90 degrees either way; it
+// fades in from 1 to 4 m/s, below which the direction of travel means nothing. A rider asked
+// for exactly this. Before it, the yaw was the slip angle only in a power slide, scaled down
+// to 15 degrees at most, and a made-up thrash in a crash.
+//
+// The sideways velocity (Motion::sway_velocity) is sent only in a slide or a crash, for a
+// profile that takes traction loss from it.
 //
 // The road texture is the kart's own suspension (Motion::suspension): each wheel's extension
 // along its arm (KartSus+0xB8) is 40 units in the air, about 36 at rest and near 0 on a hard
@@ -81,13 +75,10 @@ struct Track {
 Track g_track;
 
 // The platform's yaw (see the top of the file).
+// A slide and a crash: for the sideways velocity, and a crash's tumble fades pitch and roll.
 struct Yaw {
     float drift_w = 0.0f;   // how much of the slide is in it, 0 to 1, eased
-    float drift = 0.0f;     // the slide's angle, degrees, eased
-    float spin_w = 0.0f;    // the same for the spin
-    bool spinning = false;
-    float heading_prev = 0.0f;
-    float spun = 0.0f;      // degrees turned since the spin started
+    float spin_w = 0.0f;    // the same for a spin or a crash
 };
 Yaw g_yaw;
 float g_rev = 0.0f;   // the engine, 0 idle to 1 flat out, eased
@@ -162,34 +153,17 @@ void motion_frame(bool live) {
 
     // The slip angle: the nose against the velocity, positive with the nose to its right.
     const float v_fwd = dot(t.vel, fwd), v_right = dot(t.vel, right);
-    const bool moving = v_fwd * v_fwd + v_right * v_right > 3.0f * 3.0f;
-    const float slip = moving ? atan2f(-v_right, fabsf(v_fwd)) * kDeg : 0.0f;
+    const float v_ground = sqrtf(v_fwd * v_fwd + v_right * v_right);
+    const bool moving = v_ground > 3.0f;
+    const float slip = v_ground > 0.0f ? atan2f(-v_right, fabsf(v_fwd)) * kDeg : 0.0f;
+    const float slip_w = fminf(1.0f, fmaxf(0.0f, (v_ground - 1.0f) / 3.0f));
 
-    // The yaw: a slide, a spin, or nothing.
     Yaw& y = g_yaw;
-    static const float drift_gain = telemetry::get("drift_yaw_gain", 0.25f);
-    static const float drift_max = telemetry::get("drift_yaw_max", 15.0f);
     static const float drift_fade = telemetry::get("drift_fade_s", 0.25f);
-    static const float spin_yaw = telemetry::get("spin_yaw", 20.0f);
-    static const float spin_period = telemetry::get("spin_period_s", 0.5f);
-    const float heading = atan2f(-fwd[0], fwd[2]) * kDeg;   // turning right raises it
     const bool spinning = (p.status & (kStatusSpin | kStatusHalfSpin | kStatusCrash)) != 0;
     const bool drifting = !spinning && (p.status & kStatusDrift) && moving;
-    if (spinning && !y.spinning) y.spun = 0.0f;
-    if (spinning) {
-        float turned = heading - y.heading_prev;
-        while (turned > 180.0f) turned -= 360.0f;
-        while (turned < -180.0f) turned += 360.0f;
-        // At least one turn a spin_period_s, in the way the kart is turning.
-        const float least = spin_period > 0.0f ? 360.0f * kDt / spin_period : 0.0f;
-        if (fabsf(turned) < least) turned = turned < 0.0f ? -least : least;
-        y.spun += turned;
-    }
-    y.spinning = spinning;
-    y.heading_prev = heading;
     y.spin_w += ((spinning ? 1.0f : 0.0f) - y.spin_w) * rate(0.08f);
     y.drift_w += ((drifting ? 1.0f : 0.0f) - y.drift_w) * rate(drift_fade);
-    if (drifting) y.drift += (fmaxf(-drift_max, fminf(drift_max, slip * drift_gain)) - y.drift) * rate(0.15f);
 
     // The engine: the speed, or the game's revs near a standstill.
     static const float idle_rpm = telemetry::get("idle_rpm", 900.0f);
@@ -206,7 +180,7 @@ void motion_frame(bool live) {
     m.speed_kmh = kmh;
     m.pitch = asinf(clamp1(fwd[1])) * kDeg * upright;      // nose up is positive
     m.roll = -asinf(clamp1(right[1])) * kDeg * upright;    // right side down is positive
-    m.yaw = y.drift * y.drift_w + spin_yaw * sinf(y.spun / kDeg) * y.spin_w;
+    m.yaw = slip * slip_w;
     m.surge = dot(t.acc, fwd) * accel_scale;
     m.sway = dot(t.acc, right) * accel_scale;
     m.heave = dot(t.acc, up) * accel_scale;
@@ -226,8 +200,8 @@ void motion_frame(bool live) {
         static int n;
         if (n++ % log_every() == 0)
             fprintf(stderr, "[motion] %5.1f km/h pitch %+5.1f roll %+5.1f yaw %+6.1f | surge %+6.2f sway %+6.2f heave %+6.2f m/s2 slide %+5.2f m/s | "
-                            "slip %+6.1f drift %.2f spin %.2f spun %+5.0f | status %08X ground %02X/%02X wheels %d revs %5.0f rpm %5.0f | sus %+7.3f %+7.3f %+7.3f %+7.3f\n",
-                    m.speed_kmh, m.pitch, m.roll, m.yaw, m.surge, m.sway, m.heave, v_right, slip, y.drift_w, y.spin_w, y.spun,
+                            "slip %+6.1f drift %.2f spin %.2f | status %08X ground %02X/%02X wheels %d revs %5.0f rpm %5.0f | sus %+7.3f %+7.3f %+7.3f %+7.3f\n",
+                    m.speed_kmh, m.pitch, m.roll, m.yaw, m.surge, m.sway, m.heave, v_right, slip, y.drift_w, y.spin_w,
                     p.status, p.ground, p.material, p.wheels_down, p.rpm, m.rpm, p.sus[0], p.sus[1], p.sus[2], p.sus[3]);
     }
     telemetry::publish(m);

@@ -156,8 +156,9 @@ one starts or you resume. Pitch and roll are your kart's against the horizontal;
 and heave are its accelerations. Karts corner at several g at the game's own scale, so those
 are scaled down before they are sent.
 
-The platform does not yaw with every turn. It yaws into a power slide, by the angle of the
-slide, and thrashes from side to side when you spin out or are hit. The road's texture is the
+The platform does not yaw with every turn. Its yaw is the angle between where the kart is
+facing and where it is going: a few degrees on the road, far more in a power slide or when
+it spins out. The road's texture is the
 kart's own suspension riding over it, so the grass, the rumble strips and the landings feel
 like what they are; the engine is sent for a shaker's engine effect, rising with your speed.
 
@@ -169,11 +170,6 @@ accel_scale 0.3     # what the kart's accelerations are multiplied by before any
 pitch_gain 2        # multiply each channel; a negative value inverts it
 roll_gain 1
 yaw_gain 1
-drift_yaw_gain 0.25 # yaw in a slide, times the slide's angle
-drift_yaw_max 15    #   and at most this, in degrees
-drift_fade_s 0.25   #   eased in and out over this
-spin_yaw 20         # how far a spin-out swings the platform each way, in degrees
-spin_period_s 0.5   # the slowest a spin-out swings: one swing each way in this long
 texture_gain 1      # the road texture, from the kart's suspension
 suspension_heave 40 #   heave, m/s^2 for each metre the springs move
 suspension_pitch 0.6 #  pitch, times the angle front against rear
