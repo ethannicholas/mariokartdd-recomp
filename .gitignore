@@ -21,3 +21,9 @@ tools/dtk
 __pycache__/
 .DS_Store
 panic.txt
+
+# Each player's own settings, read from the directory the game runs in: controls
+# (controls.txt), the motion rig (telemetry.txt) and the headset (vr.txt).
+/controls.txt
+/telemetry.txt
+/vr.txt
