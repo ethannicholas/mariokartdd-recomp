@@ -335,6 +335,45 @@ working, except on a device that `controls.txt` names. Problems with the file ar
 when the game starts, and those lines are skipped. Joysticks are read even when the window
 isn't in front.
 
+#### Force feedback
+
+A wheel with force feedback gets it on the device that `stick_x` is bound to:
+
+- **A stop at full lock.** The game's steering reaches full lock where `gain` puts it:
+  with `gain 3` on a 900° wheel, at 150° each way. Past that point the wheel pushes back
+  hard and is damped, so you feel the end of the steering instead of turning on into
+  nothing. With `gain 1` there is no stop from the game; set your wheel's own rotation
+  instead.
+- **Centring**, light when standing still and in menus, firmer with speed and cornering
+  load, and lighter in a slide.
+- **The road**: bumps under the front wheels and knocks from collisions.
+- **Rumble**, whenever the game runs the controller's rumble motor (a gamepad rumbles too).
+
+To feel it without the game, and see where full lock is, run
+
+```powershell
+.\build\mkdd.exe --test-ffb
+```
+
+Each part has a strength in `controls.txt`, as a fraction of the wheel's strongest force:
+
+```
+ffb_gain = 0.4          # everything except the stop (default 0.4)
+ffb_stop = 0.8          # the stop's force (default 0.8); not scaled by ffb_gain
+ffb_centre = 0.35       # centring at speed (ffb_centre_rest 0.1 standing still)
+ffb_damper = 0.1
+ffb_road = 0.3
+ffb_jolt = 0.5
+ffb_rumble = 0.3
+```
+
+Also `ffb_load` (0.3, extra centring per g of cornering), `ffb_slide` (0.6, how much a
+slide lightens it), `ffb_speed_kmh` (100, where centring is at its firmest),
+`ffb_stop_stiffness` (40) and `ffb_stop_damper` (0.6). `ffb = off` turns force feedback
+off, and `ffb_device = "<device>"` sends it to another device. Force feedback ramps up over
+the first second and a half, so a wheel left past the lock is brought back, not thrown. On
+a direct-drive base, start with the wheel's own strength turned down.
+
 ## Repository layout
 
 - `gcn-recomp/`: the shared recompiler, GameCube runtime, renderer and frontends, as a
