@@ -19,7 +19,9 @@ gcn_add_game(
   TABLES ${CMAKE_SOURCE_DIR}/recomp
   FPS 60
   # The game's half of the headset and the motion rig: when to be in stereo, the world's
-  # scale, what the eyes leave out, and the kart's motion (docs/dev/vr.md).
+  # scale, what the eyes leave out, and the kart's motion (docs/dev/vr.md); and where its
+  # sticks respond, for controls.txt (docs/dev/controls.md).
   SOURCES ${CMAKE_SOURCE_DIR}/src/race.cpp ${CMAKE_SOURCE_DIR}/src/vr_mkdd.cpp ${CMAKE_SOURCE_DIR}/src/motion.cpp
+          ${CMAKE_SOURCE_DIR}/src/controls.cpp
   # The headset app and its harness, on an Android build.
   ANDROID_PACKAGE com.ethannicholas.mkdd)

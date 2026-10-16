@@ -80,11 +80,12 @@ with `--eye` on the desktop) is an eye hook that puts the eye in the driver's se
 frame the guest thread reads the kart's matrix in the camera's view space (`kart_in_view`:
 the body's world matrix through the camera's view). The eye hook, on the render thread,
 looks in that frame's batch for the kart body model's position matrix and places the eye
-at (`fp_x`, `fp_y`, `fp_z`) = (0, 75, 20) in it, looking along the kart's nose and tilting
+at (`fp_x`, `fp_y`, `fp_z`) = (0, 105, -10) in it -- a foot above and behind the driver's
+head at (0, 75, 20), where it sat until a rider asked for it higher and further back -- looking along the kart's nose and tilting
 with it. Taking the kart from the batch rather than from memory keeps the eye on exactly
 the kart that frame draws; when the batch has nothing, the eye is placed from the memory
 matrix with the body model's last offset. Draws whose position matrix's origin is within
-`fp_hide` (45 units) of the eye -- the driver's head and shoulders -- are left out of the
+`fp_hide` (45 units) of the driver's head -- the head and shoulders -- are left out of the
 eyes.
 
 Which matrix is the body model's took three tries, each checked by replaying a headset

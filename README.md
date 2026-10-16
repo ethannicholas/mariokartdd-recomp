@@ -266,9 +266,9 @@ hud_height_m 0           # how far above the forward axis its centre sits
 world_pitch_deg 18       # the chase camera's downward pitch taken out of the world, in degrees
 follow_camera_pitch 1    #   1 follows the camera's own pitch in a race instead
 fp_x 0                   # where your eyes sit in the driver's seat, in the kart model's
-fp_y 75                  #   units (100 a metre): left, up, forward
-fp_z 20
-fp_hide 45               # draws this near your eyes (the driver's head) are not drawn
+fp_y 105                 #   units (100 a metre): left, up, forward
+fp_z -10
+fp_hide 45               # draws this near the driver's head are not drawn
 eye_scale 1.4            # eye resolution, times what the headset recommends
 msaa 4                   # antialiasing samples per pixel in stereo
 transition_s 1           # seconds the switch between flat and stereo takes
@@ -329,6 +329,12 @@ stick_down = "Button Box" button 3
 - **Options:** `invert` (for a pedal that rests at the top of its range: `--list-controls`
   suggests it when it sees one), `deadzone <fraction>`, `gain <factor>`, and `threshold
   <fraction>` (where a button counts as pressed; 0.5 by default, 0.85 for L and R).
+
+The game ignores small stick movements and reaches full lock before the stick's end, so a
+bound stick axis starts just past the game's dead zone, as soon as your wheel leaves a
+0.5% dead zone of its own (`deadzone` changes that), and reaches the game's full lock at the
+binding's full lock. `stick_x_min`/`stick_x_max` (and `stick_y_`, `cstick_x_`,
+`cstick_y_`) override where that is, in the pad's units from the centre.
 
 A control can be bound more than once. The keyboard and gamepad defaults above keep
 working, except on a device that `controls.txt` names. Problems with the file are printed

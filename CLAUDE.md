@@ -28,6 +28,7 @@ anything non-obvious you learn in `docs/dev/`:
 - `docs/dev/routes.md` -- scripted input routes through the game.
 - `docs/dev/vr.md` -- the headset hooks and the game state they read.
 - `docs/dev/symbols.md` -- where `analysis/symbols.txt`'s names come from.
+- `docs/dev/controls.md` -- what the game does with the pad, for controls.txt.
 
 When a belief is overturned, say what the belief was and what disproved it.
 

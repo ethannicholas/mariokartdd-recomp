@@ -43,10 +43,13 @@ std::mutex g_kart_mutex;
 float g_kart[3][4];
 bool g_have_kart = false;
 
-// Where the eye sits in first person, in the kart body model's frame (game units: x the
-// kart's left, y up, z forward), and how near that point a draw must be to be left out of
-// the eyes -- the driver's head and shoulders. vr.txt: fp_x, fp_y, fp_z, fp_hide.
-float g_fp[3] = {0.0f, 75.0f, 20.0f};
+// Where the eye sits in first person, in the kart body model's frame (game units, 100 a
+// metre: x the kart's left, y up, z forward), and how near the driver's head a draw must
+// be to be left out of the eyes -- the head and shoulders. The eye was at the head at
+// first; it is now a foot above it and a foot behind, which a rider asked for, and the
+// head is still where it was. vr.txt: fp_x, fp_y, fp_z, fp_hide.
+float g_fp[3] = {0.0f, 105.0f, -10.0f};
+constexpr float kHead[3] = {0.0f, 75.0f, 20.0f};
 float g_fp_hide = 45.0f;
 
 // Frames a race must have been live before stereo comes back after it was not. Leaving the
@@ -216,12 +219,13 @@ bool eye_hook(const gx::Batch& b, const std::vector<uint8_t>& offscreen, uint32_
     }
     const float* q = best >= 0 ? &b.mtxs[best * 12] : from_memory;
     // The eye's axes in the camera's view space: right is the kart's -x, up its y, back its -z.
-    float r[3], u[3], bk[3], p[3];
+    float r[3], u[3], bk[3], p[3], head[3];
     for (int i = 0; i < 3; i++) {
         r[i] = -q[i * 4 + 0];
         u[i] = q[i * 4 + 1];
         bk[i] = -q[i * 4 + 2];
         p[i] = q[i * 4 + 3] + q[i * 4 + 0] * g_fp[0] + q[i * 4 + 1] * g_fp[1] + q[i * 4 + 2] * g_fp[2];
+        head[i] = q[i * 4 + 3] + q[i * 4 + 0] * kHead[0] + q[i * 4 + 1] * kHead[1] + q[i * 4 + 2] * kHead[2];
     }
     // view_to_eye is the inverse of the eye's pose: rows are its axes, then -axes.p.
     float* v = out.view_to_eye;
@@ -237,13 +241,13 @@ bool eye_hook(const gx::Batch& b, const std::vector<uint8_t>& offscreen, uint32_
     v[15] = 1.0f;
     memset(out.hud_to_eye, 0, sizeof(out.hud_to_eye));
     out.hud_to_eye[0] = out.hud_to_eye[5] = out.hud_to_eye[10] = out.hud_to_eye[15] = 1.0f;
-    // The driver's head and shoulders: every draw whose position matrix's origin is near the eye.
+    // The driver's head and shoulders: every draw whose position matrix's origin is near the head.
     out.hide.assign(b.cmds.size(), 0);
     for (size_t i = 0; i < b.cmds.size(); i++) {
         const gx::Cmd& c = b.cmds[i];
         if (c.type != gx::CmdType::Draw || offscreen[i] || (size_t)c.mtx >= n) continue;
         const float* m = &b.mtxs[c.mtx * 12];
-        const float dx = m[3] - p[0], dy = m[7] - p[1], dz = m[11] - p[2];
+        const float dx = m[3] - head[0], dy = m[7] - head[1], dz = m[11] - head[2];
         if (dx * dx + dy * dy + dz * dz < g_fp_hide * g_fp_hide) out.hide[i] = 1;
     }
     return true;
