@@ -172,7 +172,8 @@ yaw_gain 1
 drift_yaw_gain 0.25 # yaw in a slide, times the slide's angle
 drift_yaw_max 15    #   and at most this, in degrees
 drift_fade_s 0.25   #   eased in and out over this
-spin_yaw 12         # how far a spin-out swings the platform each way, in degrees
+spin_yaw 20         # how far a spin-out swings the platform each way, in degrees
+spin_period_s 0.5   # the slowest a spin-out swings: one swing each way in this long
 texture_gain 1      # the road texture, from the kart's suspension
 suspension_heave 40 #   heave, m/s^2 for each metre the springs move
 suspension_pitch 0.6 #  pitch, times the angle front against rear

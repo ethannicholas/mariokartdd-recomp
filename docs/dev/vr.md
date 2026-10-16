@@ -147,6 +147,14 @@ made every frame). An eye hangs orthographic draws on the HUD frame, where these
 a translucent rectangle of smeared scenery. `eye_filter` hides every orthographic draw that
 samples a copy. The HUD itself samples ordinary textures.
 
+An orthographic draw over the whole picture that samples no copy is a film over the
+screen: the lightning's darkening and flash, among others. On the HUD frame it was a
+translucent rectangle in front of the viewer with its edges in plain view; `eye_filter`
+makes it EyeScreen, drawn across each whole eye. Whole means its box spans -1..1 both ways
+in clip space and its triangles cover at least 3.9 of the 4 that is the picture once, which
+a frame or letterbox bars with the same box do not. `MKDD_VRLOG=1` prints each one. Not yet
+seen in a headset.
+
 ## Telemetry
 
 See the comment at the top of `motion.cpp`. In short: the body the first player's camera
@@ -202,10 +210,15 @@ shaker had no engine to play. So now (the top of `motion.cpp`):
 
 - Yaw only in a slide, by the slip angle (the nose 25-75 degrees off the velocity in the
   session's slides, against 3 degrees median and 17 at the 90th percentile when not
-  sliding; `drift_yaw_gain` 0.25, at most 15 degrees), and a thrash in a crash, the sine of
-  how far the kart has turned since it began times 12 degrees. The shared module sends a
-  game's yaw as it is when it asks (`Motion::yaw_heading` false), and the yaw rate limit is
-  raised to 360 degrees a second for this game.
+  sliding; `drift_yaw_gain` 0.25, at most 15 degrees), and a thrash in a crash: 20 degrees
+  times the sine of a phase. The phase was how far the kart's heading had turned since the
+  crash began, times 12 degrees, on the belief that a spin-out turns the kart; a rider hit
+  by a shell felt the platform barely move, and the motion log of a replayed Grand Prix
+  showed why: through most crashes the heading turns 0-20 degrees (the model spins, the
+  body does not), so the sine stayed near 0. The phase now advances at least a turn every
+  `spin_period_s` (0.5), following the heading when it turns faster. The shared module
+  sends the yaw as it is, and the yaw rate limit is raised to 360 degrees a second for
+  this game.
 - Pitch doubled. Roll not: Luigi Circuit's banked turn is 30-38 degrees for five seconds,
   which already holds roll at its limit. Both fade out in a crash.
 - A road texture. First made up in the shared module from the ground's type, as filtered

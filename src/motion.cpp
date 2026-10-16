@@ -29,9 +29,13 @@
 //   is going, positive with the nose to the right of it, 25-75 degrees in a slide -- times
 //   `drift_yaw_gain` (0.25), at most `drift_yaw_max` (15) degrees, eased in and out over
 //   `drift_fade_s`;
-// - in a spin or a crash (KartCrash's status bits), a thrash: `spin_yaw` degrees times the
-//   sine of how far the kart has turned since it started, so a spin swings the platform back
-//   and forth once a turn. `yaw_rate` is raised to 360 degrees a second to let it through.
+// - in a spin or a crash (KartCrash's status bits), a thrash: `spin_yaw` (20) degrees times
+//   the sine of a phase, so the platform swings back and forth. The phase is how far the
+//   kart's heading has turned since the crash began, but never slower than one turn in
+//   `spin_period_s` (0.5): a shell's hit spins the kart's model, not its body, whose heading
+//   turned 0-20 degrees through most of the crashes in a replayed Grand Prix, so a phase
+//   from the heading alone left the platform all but still. `yaw_rate` is raised to 360
+//   degrees a second to let the thrash through.
 // The sideways velocity (Motion::sway_velocity) is sent only then too, for a profile that
 // takes traction loss from it.
 //
@@ -166,7 +170,8 @@ void motion_frame(bool live) {
     static const float drift_gain = telemetry::get("drift_yaw_gain", 0.25f);
     static const float drift_max = telemetry::get("drift_yaw_max", 15.0f);
     static const float drift_fade = telemetry::get("drift_fade_s", 0.25f);
-    static const float spin_yaw = telemetry::get("spin_yaw", 12.0f);
+    static const float spin_yaw = telemetry::get("spin_yaw", 20.0f);
+    static const float spin_period = telemetry::get("spin_period_s", 0.5f);
     const float heading = atan2f(-fwd[0], fwd[2]) * kDeg;   // turning right raises it
     const bool spinning = (p.status & (kStatusSpin | kStatusHalfSpin | kStatusCrash)) != 0;
     const bool drifting = !spinning && (p.status & kStatusDrift) && moving;
@@ -175,6 +180,9 @@ void motion_frame(bool live) {
         float turned = heading - y.heading_prev;
         while (turned > 180.0f) turned -= 360.0f;
         while (turned < -180.0f) turned += 360.0f;
+        // At least one turn a spin_period_s, in the way the kart is turning.
+        const float least = spin_period > 0.0f ? 360.0f * kDt / spin_period : 0.0f;
+        if (fabsf(turned) < least) turned = turned < 0.0f ? -least : least;
         y.spun += turned;
     }
     y.spinning = spinning;

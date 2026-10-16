@@ -273,8 +273,20 @@ bool world_pitch(const gx::Batch&, float* pitch) {
 // back over it through a depth mask, and the like -- is orthographic, so an eye would hang
 // it on the HUD frame as a picture of the flat view. The eyes leave out every orthographic
 // draw that samples an EFB copy; the HUD's own elements sample textures.
+//
+// An orthographic draw over the whole picture that samples no copy is a film over the
+// screen -- the darkening and flashes of the lightning, and the like: on the HUD frame it
+// was a translucent panel in front of the viewer with its edges plain to see, so it goes
+// across each whole eye instead (EyeScreen). Its box is the whole picture, and its
+// triangles cover it at least once: a frame or a pair of letterbox bars has the same box
+// and covers a fraction.
 int eye_filter(const gx::PixelState&, const gx::EyeDrawFacts& f) {
-    return f.ortho && f.samples_copy ? gx::EyeHideDraw : gx::EyeKeep;
+    if (!f.ortho) return gx::EyeKeep;
+    if (f.samples_copy) return gx::EyeHideDraw;
+    const bool whole = f.clip_x0 <= -0.99f && f.clip_x1 >= 0.99f && f.clip_y0 <= -0.99f && f.clip_y1 >= 0.99f &&
+                       f.clip_area >= 3.9f;
+    if (whole && log()) fprintf(stderr, "[vr] a film over the screen: area %.2f\n", f.clip_area);
+    return whole ? gx::EyeScreen : gx::EyeKeep;
 }
 
 void config_defaults(VrConfig& c) {
