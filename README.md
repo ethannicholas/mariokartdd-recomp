@@ -289,6 +289,52 @@ theater_stereo 0         # 1 shows the flat screen as a 3D picture (a second ren
 
 Escape quits.
 
+### Wheels, pedals and other controllers
+
+Any device Windows sees as a game controller -- a wheel, pedals, a shifter, a button box,
+a flight stick -- can be bound in a `controls.txt` in the directory you run the game from
+(or the file `--controls=<path>` names). To find what to write for a control, run
+
+```powershell
+.\build\mkdd.exe --list-controls
+```
+
+It lists the devices, and prints a line for each key or button you press and each axis you
+move, such as `"Simucube 2 Pro" axis 0` or `"Button Box" button 4`. Put that after a pad
+control and `=`:
+
+```
+# GameCube control = source [options]
+stick_x    = "Simucube 2 Pro" axis 0 gain 2   # full lock at half the wheel's rotation
+A          = "P1000" axis 1                    # accelerate
+B          = "P1000" axis 0                    # brake
+R          = "Simucube 2 Pro" button 5         # right paddle
+X          = "Simucube 2 Pro" button 4         # left paddle
+Z          = "Button Box" button 0
+start      = "Button Box" button 1
+dpad_up    = "Simucube 2 Pro" hat 0 up
+stick_up   = "Button Box" button 2             # menus
+stick_down = "Button Box" button 3
+```
+
+- **Pad controls:** `A B X Y Z start`, `dpad_up dpad_down dpad_left dpad_right`, `L R`
+  (the analog trigger, which also clicks once pushed past its threshold), `stick_x stick_y
+  cstick_x cstick_y` (a whole axis), and `stick_left stick_right stick_up stick_down` and the
+  same for `cstick_` (one direction each).
+- **Sources:** `key <name>` (`key X`, `key Return`, `key "Left Shift"`), `"<device>" button
+  <n>`, `"<device>" hat <n> up|down|left|right`, and `"<device>" axis <n>`. Bound to a
+  button or trigger, an axis's whole travel counts, which is what a pedal resting at one end
+  needs. `axis <n>+` and `axis <n>-` are each half of an axis, from its centre out. If two
+  devices have the same name, the second is `"<name> #2"`.
+- **Options:** `invert` (for a pedal that rests at the top of its range: `--list-controls`
+  suggests it when it sees one), `deadzone <fraction>`, `gain <factor>`, and `threshold
+  <fraction>` (where a button counts as pressed; 0.5 by default, 0.85 for L and R).
+
+A control can be bound more than once. The keyboard and gamepad defaults above keep
+working, except on a device that `controls.txt` names. Problems with the file are printed
+when the game starts, and those lines are skipped. Joysticks are read even when the window
+isn't in front.
+
 ## Repository layout
 
 - `gcn-recomp/`: the shared recompiler, GameCube runtime, renderer and frontends, as a

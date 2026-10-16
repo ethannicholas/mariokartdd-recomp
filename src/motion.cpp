@@ -198,7 +198,6 @@ void motion_frame(bool live) {
     m.speed_kmh = kmh;
     m.pitch = asinf(clamp1(fwd[1])) * kDeg * upright;      // nose up is positive
     m.roll = -asinf(clamp1(right[1])) * kDeg * upright;    // right side down is positive
-    m.yaw_heading = false;
     m.yaw = y.drift * y.drift_w + spin_yaw * sinf(y.spun / kDeg) * y.spin_w;
     m.surge = dot(t.acc, fwd) * accel_scale;
     m.sway = dot(t.acc, right) * accel_scale;
