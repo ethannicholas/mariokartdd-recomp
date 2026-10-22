@@ -251,3 +251,19 @@ known, so those are left at zero.
 - Telemetry on a rig, the second ride: the slide's yaw and the spin's thrash, the road
   texture's size, pitch doubled, the engine on the shaker; `accel_scale`; what Lakitu's
   rescue does.
+
+## The Vision Pro (2026-10-22)
+
+A standalone Vision Pro build, on gcn-recomp's `visionos/` frontend (how it works, and what
+the first games on a device overturned, is in `gcn-recomp/docs/visionos.md`): the Quest's
+frontend core on a small OpenXR runtime over CompositorServices, ARKit and GameController,
+the renderer on ANGLE. `VISIONOS_BUNDLE_ID` in `CMakeLists.txt` turns it on, and
+`build-visionos.sh` builds, installs and pushes the disc image, as Prime's and Blue Storm's
+do. The platform's own defaults apply over this game's: `eye_scale` 1, since the
+recommendation is the foveated texture's size, and no GPU budget, since ANGLE's timer
+overstates (gcn-recomp `docs/visionos.md`, "Resolution").
+
+Nothing new was needed from this game. It has no `map_pad`, so a PS VR2 Sense controller,
+mapped onto the Touch profile, plays as a Touch controller on a Quest, the right stick
+click for the driver's seat included; a gamepad gets the desktop's GameCube layout and the
+same click. Built and installed; not yet played on the device.

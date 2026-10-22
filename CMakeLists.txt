@@ -8,6 +8,7 @@ endif()
 # submodule): the recompiler, the GameCube runtime, the renderer and the frontends. See its
 # README.
 add_subdirectory(gcn-recomp)
+gcn_enable_languages()
 
 gcn_add_game(
   NAME mkdd
@@ -24,4 +25,6 @@ gcn_add_game(
   SOURCES ${CMAKE_SOURCE_DIR}/src/race.cpp ${CMAKE_SOURCE_DIR}/src/vr_mkdd.cpp ${CMAKE_SOURCE_DIR}/src/motion.cpp
           ${CMAKE_SOURCE_DIR}/src/controls.cpp
   # The headset app and its harness, on an Android build.
-  ANDROID_PACKAGE com.ethannicholas.mkdd)
+  ANDROID_PACKAGE com.ethannicholas.mkdd
+  # The Vision Pro app, on a visionOS build: see build-visionos.sh.
+  VISIONOS_BUNDLE_ID com.ethannicholas.mkdd)
