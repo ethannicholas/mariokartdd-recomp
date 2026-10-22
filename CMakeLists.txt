@@ -19,6 +19,9 @@ gcn_add_game(
   SYMBOLS ${CMAKE_SOURCE_DIR}/analysis/symbols.txt
   TABLES ${CMAKE_SOURCE_DIR}/recomp
   FPS 60
+  # The shader keys a play-through uses, compiled on a fresh install before the game starts:
+  # made by gcn-recomp/tools/shader_keys from the Vision Pro's cache (docs/dev/vr.md).
+  SHADER_KEYS ${CMAKE_SOURCE_DIR}/src/shader_keys.bin
   # The game's half of the headset and the motion rig: when to be in stereo, the world's
   # scale, what the eyes leave out, and the kart's motion (docs/dev/vr.md); and where its
   # sticks respond, for controls.txt (docs/dev/controls.md).

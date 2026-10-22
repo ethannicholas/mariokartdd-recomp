@@ -267,3 +267,14 @@ Nothing new was needed from this game. It has no `map_pad`, so a PS VR2 Sense co
 mapped onto the Touch profile, plays as a Touch controller on a Quest, the right stick
 click for the driver's seat included; a gamepad gets the desktop's GameCube layout and the
 same click. Built and installed; not yet played on the device.
+
+## Shader keys from the Vision Pro (2026-10-22)
+
+`src/shader_keys.bin` (`SHADER_KEYS`) is the list gcn-recomp compiles on a fresh install
+before the game starts, so a first play-through does not hitch on each new program (a draw
+whose program is not built yet holds its frame, about 80 ms through ANGLE). It is the
+Vision Pro's cache after the first sessions there, made canonical by
+`gcn-recomp/tools/shader_keys`: 144 keys. The desktop's `saves/shaders.bin` is in an older
+key format the tool does not read. To extend the list, put it first so its order holds:
+`shader_keys src/shader_keys.bin src/shader_keys.bin <new caches>`.
+
