@@ -18,9 +18,14 @@ fi
 export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
 TEAM=${GCN_APPLE_TEAM:-Y3GFBT2WQ2}
 BUNDLE=com.ethannicholas.mkdd
-if [ ! -d build-visionos/mkdd.xcodeproj ]; then
+# Configured again whenever a CMake file is newer than the project. Left to Xcode, the
+# change is noticed part way through a build, which regenerates the project and finishes
+# with the old one: an app built that way went out without its shader key list.
+PBX=build-visionos/mkdd.xcodeproj/project.pbxproj
+if [ ! -f "$PBX" ] || [ -n "$(find CMakeLists.txt gcn-recomp/CMakeLists.txt gcn-recomp/tools -name 'CMakeLists.txt' -newer "$PBX" -o -name '*.cmake' -newer "$PBX" 2>/dev/null)" ]; then
   cmake -S . -B build-visionos -G Xcode -DCMAKE_SYSTEM_NAME=visionOS \
     -DCMAKE_OSX_DEPLOYMENT_TARGET=26.0 -DGCN_APPLE_TEAM="$TEAM"
+  touch "$PBX"  # CMake leaves an unchanged project alone, which would configure every run
 fi
 
 device() {
